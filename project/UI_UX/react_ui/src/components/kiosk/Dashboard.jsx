@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/modules/auth/authStore'
-import { localDB } from '@/modules/localdb/localDB'
+import localDB from '/src/modules/localdb/localDB.js'
 import { clsx } from 'clsx'
 
 const SERVICE_TILES = [

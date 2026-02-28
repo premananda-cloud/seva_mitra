@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/modules/auth/authStore'
 import { useEffect } from 'react'
-import { localDB } from '@/modules/localdb/localDB'
+import localDB from '/src/modules/localdb/localDB.js'  // ✅ Correct - importing default export
 
 // Pages
 import LanguageSelect from '@/modules/language/LanguageSelect'

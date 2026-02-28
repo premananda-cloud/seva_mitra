@@ -9,8 +9,8 @@
 
 import { create } from 'zustand'
 import { v4 as uuidv4 } from 'uuid'
-import { localDB } from '@/modules/localdb/localDB'
-import { orchestrator } from '@/modules/orchestrator/orchestrator'
+import localDB from '/src/modules/localdb/localDB.js'
+import orchestrator from '/src/modules/orchestrator/orchestrator.js'
 
 // Simple PIN "hash" for demo — replace with bcrypt in production
 const hashPin = (pin) => pin  // TODO: use bcrypt when backend connects

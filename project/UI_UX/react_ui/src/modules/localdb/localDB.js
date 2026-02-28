@@ -1,212 +1,295 @@
 /**
- * MODULE 3 — LOCAL USER DATABASE
+ * localDB.js — MODIFIED VERSION
  *
- * Uses IndexedDB (via the `idb` wrapper) for persistent local storage.
- * This is the source of truth for the demo and the sync source when
- * the real backend is connected through the Orchestrator (Module 4).
+ * Changes from v1:
+ *  1. DB_VERSION bumped to 2
+ *  2. Three new object stores added in upgrade(): paymentProfiles, payments, bills
+ *  3. New seed data added to _seedDemoData()
+ *  4. New CRUD helpers added for each new store
  *
- * Stores: users, sessions, serviceRequests, syncQueue
+ * ════════════════════════════════════════════════════════════════════════════
+ * MERGE INSTRUCTION:
+ *   This file shows the complete additions needed.
+ *   Replace the existing DB_VERSION constant and upgrade() block.
+ *   Append the new store helpers and seed data below the existing code.
+ * ════════════════════════════════════════════════════════════════════════════
  */
 
-import { openDB } from 'idb'
+// ─── Change 1: Bump DB_VERSION ────────────────────────────────────────────────
+// Was: const DB_VERSION = 1;
+const DB_VERSION = 2;
 
-const DB_NAME    = 'koisk_local'
-const DB_VERSION = 1
+const DB_NAME = 'koiskDB';
 
-let _db = null
+// ─── Change 2: New stores in upgrade() ───────────────────────────────────────
+// Append this block INSIDE the existing onupgradeneeded handler,
+// after the existing stores are created.
+//
+// if (oldVersion < 2) {
+//   /* ── paymentProfiles ── */
+//   const profileStore = db.createObjectStore('paymentProfiles', { keyPath: 'id' });
+//   profileStore.createIndex('byUserId', 'userId', { unique: true });
+//
+//   /* ── payments ── */
+//   const paymentStore = db.createObjectStore('payments', { keyPath: 'id' });
+//   paymentStore.createIndex('byUserId', 'userId');
+//   paymentStore.createIndex('byStatus', 'status');
+//   paymentStore.createIndex('byDept',   'dept');
+//
+//   /* ── bills ── */
+//   const billStore = db.createObjectStore('bills', { keyPath: 'id' });
+//   billStore.createIndex('byUserId', 'userId');
+//   billStore.createIndex('byDept',   'dept');
+//   billStore.createIndex('byStatus', 'status');
+//
+//   /* ── syncQueue (for offlineQueue.js) ── */
+//   const queueStore = db.createObjectStore('syncQueue', { autoIncrement: true, keyPath: 'id' });
+//   queueStore.createIndex('byStatus', 'status');
+// }
 
-export const localDB = {
-  // ── Init ──────────────────────────────────────────────────────────
-  async init() {
-    if (_db) return _db
-    _db = await openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        // Users store
-        if (!db.objectStoreNames.contains('users')) {
-          const users = db.createObjectStore('users', { keyPath: 'id' })
-          users.createIndex('byPhone', 'phone', { unique: true })
+// ─────────────────────────────────────────────────────────────────────────────
+// Everything below is the new helper code to ADD to the existing localDB module.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DEMO_USER_ID = 'demo-user-ramesh-001';
+
+// ─── DB open helper (copy of internal pattern) ────────────────────────────────
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      const { oldVersion } = event;
+
+      // --- existing stores from v1 (kept here for reference) ---
+      // if (oldVersion < 1) { ... existing stores ... }
+
+      if (oldVersion < 2) {
+        if (!db.objectStoreNames.contains('paymentProfiles')) {
+          const s = db.createObjectStore('paymentProfiles', { keyPath: 'id' });
+          s.createIndex('byUserId', 'userId', { unique: true });
         }
-
-        // Sessions store (active login tokens)
-        if (!db.objectStoreNames.contains('sessions')) {
-          db.createObjectStore('sessions', { keyPath: 'userId' })
+        if (!db.objectStoreNames.contains('payments')) {
+          const s = db.createObjectStore('payments', { keyPath: 'id' });
+          s.createIndex('byUserId', 'userId');
+          s.createIndex('byStatus', 'status');
+          s.createIndex('byDept',   'dept');
         }
-
-        // Service requests (pre-seeded demo data + new requests)
-        if (!db.objectStoreNames.contains('serviceRequests')) {
-          const reqs = db.createObjectStore('serviceRequests', { keyPath: 'id' })
-          reqs.createIndex('byUserId', 'userId')
+        if (!db.objectStoreNames.contains('bills')) {
+          const s = db.createObjectStore('bills', { keyPath: 'id' });
+          s.createIndex('byUserId', 'userId');
+          s.createIndex('byDept',   'dept');
+          s.createIndex('byStatus', 'status');
         }
-
-        // Sync queue — records waiting to push to real backend
         if (!db.objectStoreNames.contains('syncQueue')) {
-          const sq = db.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true })
-          sq.createIndex('bySynced', 'synced')
+          const s = db.createObjectStore('syncQueue', { autoIncrement: true, keyPath: 'id' });
+          s.createIndex('byStatus', 'status');
         }
-      },
-    })
+      }
+    };
 
-    // Seed demo data on first run
-    await localDB._seedDemoData()
-    return _db
-  },
-
-  // ── Users ─────────────────────────────────────────────────────────
-  async createUser(userData) {
-    const db = await localDB.init()
-    await db.add('users', userData)
-    await localDB._addToSyncQueue('CREATE_USER', userData)
-    return userData
-  },
-
-  async getUserByPhone(phone) {
-    const db = await localDB.init()
-    return db.getFromIndex('users', 'byPhone', phone)
-  },
-
-  async getUserById(id) {
-    const db = await localDB.init()
-    return db.get('users', id)
-  },
-
-  async updateUser(userData) {
-    const db = await localDB.init()
-    await db.put('users', userData)
-    await localDB._addToSyncQueue('UPDATE_USER', userData)
-    return userData
-  },
-
-  // ── Sessions ──────────────────────────────────────────────────────
-  async saveSession(userId, sessionData) {
-    const db = await localDB.init()
-    return db.put('sessions', { userId, ...sessionData, savedAt: Date.now() })
-  },
-
-  async getSession(userId) {
-    const db = await localDB.init()
-    return db.get('sessions', userId)
-  },
-
-  async clearSession(userId) {
-    const db = await localDB.init()
-    return db.delete('sessions', userId)
-  },
-
-  // ── Service Requests ──────────────────────────────────────────────
-  async getRequestsByUser(userId) {
-    const db = await localDB.init()
-    return db.getAllFromIndex('serviceRequests', 'byUserId', userId)
-  },
-
-  async createRequest(requestData) {
-    const db = await localDB.init()
-    await db.add('serviceRequests', requestData)
-    await localDB._addToSyncQueue('CREATE_REQUEST', requestData)
-    return requestData
-  },
-
-  // ── Sync Queue ────────────────────────────────────────────────────
-  async _addToSyncQueue(action, payload) {
-    const db = await localDB.init()
-    return db.add('syncQueue', {
-      action,
-      payload,
-      synced: false,
-      createdAt: Date.now(),
-    })
-  },
-
-  async getPendingSyncItems() {
-    const db = await localDB.init()
-    return db.getAllFromIndex('syncQueue', 'bySynced', false)
-  },
-
-  async markSynced(id) {
-    const db = await localDB.init()
-    const item = await db.get('syncQueue', id)
-    if (item) {
-      item.synced = true
-      item.syncedAt = Date.now()
-      await db.put('syncQueue', item)
-    }
-  },
-
-  // ── Demo Seed Data ────────────────────────────────────────────────
-  /**
-   * Seeds one pre-built citizen profile so the demo always starts
-   * in a known, realistic state. Uses a stable ID so it only seeds once.
-   */
-  async _seedDemoData() {
-    const db = await localDB.init()
-
-    const DEMO_USER_ID   = 'demo-user-ramesh-kumar-001'
-    const existing = await db.get('users', DEMO_USER_ID)
-    if (existing) return // Already seeded
-
-    const demoUser = {
-      id:         DEMO_USER_ID,
-      name:       'Ramesh Kumar',
-      phone:      '9876543210',
-      // PIN: 1234 — stored as plain string for demo only
-      // In production: bcrypt hash
-      pinHash:    '1234',
-      consumerId: 'ELEC-MH-00234',
-      language:   'en',
-      isDemo:     true,
-      syncedToBackend: false,
-      createdAt:  new Date('2026-01-10T08:00:00Z').toISOString(),
-    }
-
-    const demoRequests = [
-      {
-        id:        'req-demo-001',
-        userId:    DEMO_USER_ID,
-        type:      'ELECTRICITY_BILL',
-        dept:      'electricity',
-        status:    'COMPLETED',
-        amount:    1847,
-        billMonth: '2026-01',
-        reference: 'PAY-ELEC-20260125',
-        createdAt: '2026-01-25T10:30:00Z',
-      },
-      {
-        id:        'req-demo-002',
-        userId:    DEMO_USER_ID,
-        type:      'WATER_LEAK_COMPLAINT',
-        dept:      'water',
-        status:    'IN_PROGRESS',
-        amount:    null,
-        location:  'Near main gate, Block B',
-        reference: 'COMP-WAT-20260222',
-        createdAt: '2026-02-22T14:15:00Z',
-      },
-      {
-        id:        'req-demo-003',
-        userId:    DEMO_USER_ID,
-        type:      'GAS_NEW_CONNECTION',
-        dept:      'gas',
-        status:    'APPROVED',
-        amount:    2500,
-        reference: 'GAS-CONN-20260218',
-        createdAt: '2026-02-18T09:00:00Z',
-      },
-      {
-        id:        'req-demo-004',
-        userId:    DEMO_USER_ID,
-        type:      'WATER_BILL',
-        dept:      'water',
-        status:    'PENDING',
-        amount:    340,
-        billMonth: '2026-02',
-        reference: 'BILL-WAT-20260201',
-        dueDate:   '2026-03-05',
-        createdAt: '2026-02-01T08:00:00Z',
-      },
-    ]
-
-    await db.add('users', demoUser)
-    for (const req of demoRequests) {
-      await db.add('serviceRequests', req)
-    }
-  },
+    request.onsuccess = () => resolve(request.result);
+    request.onerror   = () => reject(request.error);
+  });
 }
+
+function tx(db, storeName, mode = 'readonly') {
+  const t = db.transaction(storeName, mode);
+  return { store: t.objectStore(storeName), t };
+}
+
+function req(r) {
+  return new Promise((res, rej) => {
+    r.onsuccess = () => res(r.result);
+    r.onerror   = () => rej(r.error);
+  });
+}
+
+// ─── Payment Profile CRUD ─────────────────────────────────────────────────────
+
+export async function getPaymentProfile(userId) {
+  const db = await openDB();
+  const { store } = tx(db, 'paymentProfiles');
+  const index = store.index('byUserId');
+  return req(index.get(userId));
+}
+
+export async function savePaymentProfile(profile) {
+  const db = await openDB();
+  const { store } = tx(db, 'paymentProfiles', 'readwrite');
+  return req(store.put(profile));
+}
+
+// ─── Payment CRUD ─────────────────────────────────────────────────────────────
+
+export async function getPaymentById(id) {
+  const db = await openDB();
+  const { store } = tx(db, 'payments');
+  return req(store.get(id));
+}
+
+export async function savePayment(payment) {
+  const db = await openDB();
+  const { store } = tx(db, 'payments', 'readwrite');
+  return req(store.put(payment));
+}
+
+export async function getPaymentsByUserId(userId) {
+  const db = await openDB();
+  const { store } = tx(db, 'payments');
+  const index = store.index('byUserId');
+  return req(index.getAll(userId));
+}
+
+// ─── Bill CRUD ────────────────────────────────────────────────────────────────
+
+export async function getBillById(id) {
+  const db = await openDB();
+  const { store } = tx(db, 'bills');
+  return req(store.get(id));
+}
+
+export async function saveBill(bill) {
+  const db = await openDB();
+  const { store } = tx(db, 'bills', 'readwrite');
+  return req(store.put(bill));
+}
+
+export async function getBillsByUserAndDept(userId, dept) {
+  const db = await openDB();
+  const { store } = tx(db, 'bills');
+  const all = await req(store.index('byUserId').getAll(userId));
+  return dept ? all.filter((b) => b.dept === dept) : all;
+}
+
+// ─── Demo Seed Data ───────────────────────────────────────────────────────────
+// Call this inside the existing _seedDemoData() function.
+
+export async function seedPaymentDemoData() {
+  const db = await openDB();
+
+  // Bills
+  const bills = [
+    {
+      id: 'BILL-ELEC-202602', userId: DEMO_USER_ID, dept: 'electricity',
+      consumerNo: 'ELEC-MH-00234', billMonth: '2026-02',
+      amountDue: 1847, dueDate: '2026-03-10T00:00:00Z',
+      status: 'PENDING', paidPaymentId: null,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'BILL-WATER-202602', userId: DEMO_USER_ID, dept: 'water',
+      consumerNo: 'WAT-MH-00891', billMonth: '2026-02',
+      amountDue: 340, dueDate: '2026-03-05T00:00:00Z',
+      status: 'PENDING', paidPaymentId: null,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'BILL-GAS-202602', userId: DEMO_USER_ID, dept: 'gas',
+      consumerNo: 'GAS-MH-00156', billMonth: '2026-02',
+      amountDue: 890, dueDate: '2026-03-15T00:00:00Z',
+      status: 'PENDING', paidPaymentId: null,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  // Payment profile for demo user
+  const profile = {
+    id:                  DEMO_USER_ID,
+    userId:              DEMO_USER_ID,
+    portoneCustomerId:   'cust_demo_portone_001',
+    razorpayCustomerId:  null,
+    name:                'Ramesh Kumar',
+    contact:             '+919876543210',
+    email:               'ramesh@koisk.local',
+    defaultMethod:       'upi',
+    preferredGateway:    'portone',
+    createdAt:           '2026-01-10T08:00:00Z',
+    syncedToBackend:     false,
+  };
+
+  // Past payments for history display (4 seed records)
+  const pastPayments = [
+    {
+      id: 'pay-demo-001', userId: DEMO_USER_ID, dept: 'electricity',
+      type: 'BILL_PAYMENT', billRef: 'BILL-ELEC-202601', amount: 1620,
+      currency: 'INR', gateway: 'mock', gatewayPaymentId: 'pay_mock_001',
+      gatewayOrderId: 'order_mock_001', method: 'upi',
+      status: 'SUCCESS', referenceNo: 'PAY-ELEC-20260202-0031',
+      receiptData: { referenceNo: 'PAY-ELEC-20260202-0031', amount: 1620, dept: 'electricity', method: 'upi', paidAt: '2026-02-02T11:14:00Z', consumerNo: 'ELEC-MH-00234' },
+      createdAt: '2026-02-02T11:10:00Z', paidAt: '2026-02-02T11:14:00Z', syncedToBackend: false,
+    },
+    {
+      id: 'pay-demo-002', userId: DEMO_USER_ID, dept: 'water',
+      type: 'BILL_PAYMENT', billRef: 'BILL-WATER-202601', amount: 290,
+      currency: 'INR', gateway: 'mock', gatewayPaymentId: 'pay_mock_002',
+      gatewayOrderId: 'order_mock_002', method: 'upi',
+      status: 'SUCCESS', referenceNo: 'PAY-WATR-20260205-0032',
+      receiptData: { referenceNo: 'PAY-WATR-20260205-0032', amount: 290, dept: 'water', method: 'upi', paidAt: '2026-02-05T09:22:00Z', consumerNo: 'WAT-MH-00891' },
+      createdAt: '2026-02-05T09:20:00Z', paidAt: '2026-02-05T09:22:00Z', syncedToBackend: false,
+    },
+    {
+      id: 'pay-demo-003', userId: DEMO_USER_ID, dept: 'gas',
+      type: 'BILL_PAYMENT', billRef: 'BILL-GAS-202601', amount: 760,
+      currency: 'INR', gateway: 'mock', gatewayPaymentId: 'pay_mock_003',
+      gatewayOrderId: 'order_mock_003', method: 'card',
+      status: 'SUCCESS', referenceNo: 'PAY-GAS-20260210-0033',
+      receiptData: { referenceNo: 'PAY-GAS-20260210-0033', amount: 760, dept: 'gas', method: 'card', paidAt: '2026-02-10T17:45:00Z', consumerNo: 'GAS-MH-00156' },
+      createdAt: '2026-02-10T17:44:00Z', paidAt: '2026-02-10T17:45:00Z', syncedToBackend: false,
+    },
+    {
+      id: 'pay-demo-004', userId: DEMO_USER_ID, dept: 'electricity',
+      type: 'BILL_PAYMENT', billRef: 'BILL-ELEC-202512', amount: 1930,
+      currency: 'INR', gateway: 'mock', gatewayPaymentId: 'pay_mock_004',
+      gatewayOrderId: 'order_mock_004', method: 'netbanking',
+      status: 'SUCCESS', referenceNo: 'PAY-ELEC-20260104-0028',
+      receiptData: { referenceNo: 'PAY-ELEC-20260104-0028', amount: 1930, dept: 'electricity', method: 'netbanking', paidAt: '2026-01-04T14:30:00Z', consumerNo: 'ELEC-MH-00234' },
+      createdAt: '2026-01-04T14:28:00Z', paidAt: '2026-01-04T14:30:00Z', syncedToBackend: false,
+    },
+  ];
+
+  // Write all seed data (skip if already exists)
+  const billStore = db.transaction('bills', 'readwrite').objectStore('bills');
+  for (const bill of bills) {
+    const existing = await req(billStore.get(bill.id));
+    if (!existing) await req(billStore.put(bill));
+  }
+
+  const profStore = db.transaction('paymentProfiles', 'readwrite').objectStore('paymentProfiles');
+  const existingProfile = await req(profStore.get(DEMO_USER_ID));
+  if (!existingProfile) await req(profStore.put(profile));
+
+  const payStore = db.transaction('payments', 'readwrite').objectStore('payments');
+  for (const payment of pastPayments) {
+    const existing = await req(payStore.get(payment.id));
+    if (!existing) await req(payStore.put(payment));
+  }
+}
+
+// ─── getUserById stub ─────────────────────────────────────────────────────────
+// This function is called by paymentService — implement it in the real localDB.js
+// by reading from the 'users' store. Stub provided here for reference.
+
+export async function getUserById(userId) {
+  const db = await openDB();
+  const { store } = tx(db, 'users');
+  return req(store.get(userId));
+}
+
+// ─── Default export (merge into existing localDB default export object) ───────
+const localDB = {
+  getPaymentProfile,
+  savePaymentProfile,
+  getPaymentById,
+  savePayment,
+  getPaymentsByUserId,
+  getBillById,
+  saveBill,
+  getBillsByUserAndDept,
+  seedPaymentDemoData,
+  getUserById,
+};
+
+export default localDB;

@@ -1,100 +1,184 @@
 /**
- * MODULE 4 — ORCHESTRATOR (STUB)
+ * orchestrator_payment_additions.js
+ * ════════════════════════════════════════════════════════════════════════════
+ * MERGE INSTRUCTION:
+ *   Copy the methods below into the existing orchestrator.js class/object,
+ *   replacing the stub payment methods described in Section 1.17 of the spec.
  *
- * This is the single connection point between the React app and
- * any real backend. Right now every method is a no-op stub that
- * logs what would be sent.
+ *   Also add the mockPaymentService import at the top of orchestrator.js:
+ *     import { mockPaymentService } from './mockPaymentService.js';
+ * ════════════════════════════════════════════════════════════════════════════
  *
- * TO CONNECT THE REAL BACKEND:
- *   1. Import your API service here
- *   2. Replace the stub methods with real calls
- *   3. Handle sync queue items from localDB.getPendingSyncItems()
- *   Zero changes to any component or store needed.
- *
- * Events this orchestrator handles:
- *   - onUserRegistered    → POST /api/v1/auth/register
- *   - onUserLoggedOut     → POST /api/v1/auth/logout
- *   - onPaymentRequested  → POST /api/v1/payments/initiate
- *   - onServiceRequest    → POST /api/v1/{dept}/service-requests
- *   - syncPending         → flush localDB syncQueue to backend
+ * These replace stubs matching:
+ *   onPaymentRequested(paymentData) { ... }
  */
 
-class Orchestrator {
-  constructor() {
-    this._backendConnected = false
-    this._backendBaseUrl   = null
-  }
+// ─── Dependencies (already assumed to be in orchestrator.js) ─────────────────
+// import axios from 'axios';
 
-  // ── Connection ────────────────────────────────────────────────
+// ─── New payment routing methods ─────────────────────────────────────────────
+
+const paymentMethods = {
+
   /**
-   * Call this when you're ready to connect the real backend.
-   * e.g. orchestrator.connect('http://localhost:8000')
+   * Register a user as a customer on PortOne (via backend proxy).
+   * Mock mode: returns a fake customer ID instantly.
+   *
+   * @param {{ userId, name, contact, email, notes }} userData
+   * @returns {Promise<{ portoneCustomerId: string, razorpayCustomerId: string|null }>}
    */
-  connect(baseUrl) {
-    this._backendBaseUrl   = baseUrl
-    this._backendConnected = true
-    console.info('[Orchestrator] Connected to backend:', baseUrl)
-    this.syncPending()
-  }
-
-  isConnected() {
-    return this._backendConnected
-  }
-
-  // ── Auth Events ───────────────────────────────────────────────
-  onUserRegistered(user) {
+  async registerCustomer(userData) {
     if (!this._backendConnected) {
-      console.debug('[Orchestrator][STUB] User registered locally, will sync later:', user.id)
-      return
+      return {
+        portoneCustomerId:  `cust_mock_${Date.now()}`,
+        razorpayCustomerId: null,
+      };
     }
-    // TODO: POST this._backendBaseUrl + '/api/v1/auth/register'
-  }
 
-  onUserLoggedOut(userId) {
+    const response = await axios.post(
+      `${this._backendBaseUrl}/api/v1/payments/customer/register`,
+      userData,
+      { headers: this._authHeaders() }
+    );
+
+    return response.data;
+  },
+
+  /**
+   * Create a payment order on the chosen gateway.
+   * Mock mode: simulates order creation with 300ms delay.
+   *
+   * @param {{ userId, billId, dept, amount, currency, gateway, method, customerId }} payload
+   * @returns {Promise<{ orderId, gateway, gatewayData, expiresAt }>}
+   */
+  async initiatePayment(payload) {
     if (!this._backendConnected) {
-      console.debug('[Orchestrator][STUB] Logout for userId:', userId)
-      return
+      return mockPaymentService.initiate(payload);
     }
-    // TODO: POST this._backendBaseUrl + '/api/v1/auth/logout'
-  }
 
-  // ── Payment Events ────────────────────────────────────────────
-  onPaymentRequested(paymentData) {
+    const response = await axios.post(
+      `${this._backendBaseUrl}/api/v1/payments/initiate`,
+      payload,
+      { headers: this._authHeaders() }
+    );
+
+    return response.data;
+  },
+
+  /**
+   * Complete a payment after the gateway confirms on the client side.
+   * Mock mode: simulates receipt generation.
+   *
+   * @param {{ paymentId, orderId, gateway, gatewayPaymentId }} payload
+   * @returns {Promise<{ receipt }>}
+   */
+  async completePayment(payload) {
     if (!this._backendConnected) {
-      console.debug('[Orchestrator][STUB] Payment requested (mock mode):', paymentData)
-      // In mock mode, caller handles payment simulation directly
-      return { mode: 'mock' }
+      return mockPaymentService.complete(payload);
     }
-    // TODO: POST this._backendBaseUrl + '/api/v1/payments/initiate'
-    return { mode: 'real' }
-  }
 
-  onPaymentCompleted(paymentData) {
+    const response = await axios.post(
+      `${this._backendBaseUrl}/api/v1/payments/complete`,
+      payload,
+      { headers: this._authHeaders() }
+    );
+
+    return response.data;
+  },
+
+  /**
+   * Poll payment status.
+   * @param {{ gateway: string, paymentId: string }} params
+   * @returns {Promise<{ verified: boolean, status: string }>}
+   */
+  async verifyPayment({ gateway, paymentId }) {
     if (!this._backendConnected) {
-      console.debug('[Orchestrator][STUB] Payment completed:', paymentData.id)
-      return
+      return { verified: true, status: 'SUCCESS' };
     }
-    // TODO: POST this._backendBaseUrl + '/api/v1/payments/confirm'
-  }
 
-  // ── Service Request Events ────────────────────────────────────
-  onServiceRequest(requestData) {
+    const response = await axios.get(
+      `${this._backendBaseUrl}/api/v1/payments/status/${paymentId}`,
+      { headers: this._authHeaders() }
+    );
+
+    return response.data;
+  },
+
+  /**
+   * Fetch payment history for a user.
+   * @param {string} userId
+   * @returns {Promise<Payment[]>}
+   */
+  async getPaymentHistory(userId) {
     if (!this._backendConnected) {
-      console.debug('[Orchestrator][STUB] Service request queued:', requestData.type)
-      return
+      const { default: localDB } = await import('../localdb/localDB.js');
+      return localDB.getPaymentsByUserId(userId);
     }
-    // TODO: POST this._backendBaseUrl + `/api/v1/${requestData.dept}/service-requests`
-  }
 
-  // ── Sync Queue ────────────────────────────────────────────────
-  async syncPending() {
-    if (!this._backendConnected) return
-    const { localDB } = await import('@/modules/localdb/localDB')
-    const pending = await localDB.getPendingSyncItems()
-    console.info(`[Orchestrator] Syncing ${pending.length} pending items...`)
-    // TODO: iterate pending, push to backend, call localDB.markSynced(item.id)
-  }
-}
+    const response = await axios.get(
+      `${this._backendBaseUrl}/api/v1/payments/history/${userId}`,
+      { headers: this._authHeaders() }
+    );
 
-// Singleton — import this anywhere
-export const orchestrator = new Orchestrator()
+    return response.data;
+  },
+
+  /**
+   * Fetch pending bills for a department.
+   * @param {string} userId
+   * @param {string} dept
+   * @returns {Promise<Bill[]>}
+   */
+  async getBills(userId, dept) {
+    if (!this._backendConnected) {
+      const { default: localDB } = await import('../localdb/localDB.js');
+      return localDB.getBillsByUserAndDept(userId, dept);
+    }
+
+    const response = await axios.get(
+      `${this._backendBaseUrl}/api/v1/${dept}/bills`,
+      { params: { userId }, headers: this._authHeaders() }
+    );
+
+    return response.data;
+  },
+};
+
+export default paymentMethods;
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// mockPaymentService.js
+// Create this as a sibling file: modules/orchestrator/mockPaymentService.js
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// import { generateReferenceNo } from '../payment/paymentUtils.js';
+// import { MOCK_DELAY_UPI_MS, MOCK_DELAY_CARD_MS } from '../payment/constants.js';
+//
+// export const mockPaymentService = {
+//   async initiate({ method }) {
+//     await new Promise(r => setTimeout(r, 300));
+//     return {
+//       orderId:     `order_mock_${Date.now()}`,
+//       paymentId:   crypto.randomUUID(),
+//       gateway:     'mock',
+//       gatewayData: {},
+//       expiresAt:   new Date(Date.now() + 15 * 60000).toISOString(),
+//       mockDelay:   method === 'upi' ? MOCK_DELAY_UPI_MS : MOCK_DELAY_CARD_MS,
+//       mode:        'mock',
+//     };
+//   },
+//   async complete({ paymentId, orderId }) {
+//     const refNo = generateReferenceNo('electricity');
+//     return {
+//       receipt: {
+//         referenceNo: refNo,
+//         amount:      null,
+//         dept:        'electricity',
+//         method:      'upi',
+//         paidAt:      new Date().toISOString(),
+//         consumerNo:  null,
+//       }
+//     };
+//   },
+// };
