@@ -1,184 +1,137 @@
-/**
- * orchestrator_payment_additions.js
- * ════════════════════════════════════════════════════════════════════════════
- * MERGE INSTRUCTION:
- *   Copy the methods below into the existing orchestrator.js class/object,
- *   replacing the stub payment methods described in Section 1.17 of the spec.
- *
- *   Also add the mockPaymentService import at the top of orchestrator.js:
- *     import { mockPaymentService } from './mockPaymentService.js';
- * ════════════════════════════════════════════════════════════════════════════
- *
- * These replace stubs matching:
- *   onPaymentRequested(paymentData) { ... }
- */
+// orchestrator.js - REAL IMPLEMENTATION
+import axios from 'axios';
 
-// ─── Dependencies (already assumed to be in orchestrator.js) ─────────────────
-// import axios from 'axios';
+class Orchestrator {
+  constructor() {
+    this._backendConnected = false; // Set to true when backend is ready
+    this._backendBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    this._mockMode = true; // Toggle for development
+  }
 
-// ─── New payment routing methods ─────────────────────────────────────────────
+  isConnected() {
+    return this._backendConnected;
+  }
 
-const paymentMethods = {
+  _authHeaders() {
+    const token = localStorage.getItem('auth_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
 
-  /**
-   * Register a user as a customer on PortOne (via backend proxy).
-   * Mock mode: returns a fake customer ID instantly.
-   *
-   * @param {{ userId, name, contact, email, notes }} userData
-   * @returns {Promise<{ portoneCustomerId: string, razorpayCustomerId: string|null }>}
-   */
+  // Payment methods
   async registerCustomer(userData) {
-    if (!this._backendConnected) {
+    if (this._mockMode || !this._backendConnected) {
       return {
-        portoneCustomerId:  `cust_mock_${Date.now()}`,
+        portoneCustomerId: `cust_mock_${Date.now()}`,
         razorpayCustomerId: null,
       };
     }
 
-    const response = await axios.post(
-      `${this._backendBaseUrl}/api/v1/payments/customer/register`,
-      userData,
-      { headers: this._authHeaders() }
-    );
+    try {
+      const response = await axios.post(
+        `${this._backendBaseUrl}/api/v1/payments/customer/register`,
+        userData,
+        { headers: this._authHeaders() }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error registering customer:', error);
+      throw error;
+    }
+  }
 
-    return response.data;
-  },
-
-  /**
-   * Create a payment order on the chosen gateway.
-   * Mock mode: simulates order creation with 300ms delay.
-   *
-   * @param {{ userId, billId, dept, amount, currency, gateway, method, customerId }} payload
-   * @returns {Promise<{ orderId, gateway, gatewayData, expiresAt }>}
-   */
   async initiatePayment(payload) {
-    if (!this._backendConnected) {
+    if (this._mockMode || !this._backendConnected) {
+      // Import dynamically to avoid circular dependencies
+      const { mockPaymentService } = await import('./mockPaymentService.js');
       return mockPaymentService.initiate(payload);
     }
 
-    const response = await axios.post(
-      `${this._backendBaseUrl}/api/v1/payments/initiate`,
-      payload,
-      { headers: this._authHeaders() }
-    );
+    try {
+      const response = await axios.post(
+        `${this._backendBaseUrl}/api/v1/payments/initiate`,
+        payload,
+        { headers: this._authHeaders() }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error initiating payment:', error);
+      throw error;
+    }
+  }
 
-    return response.data;
-  },
-
-  /**
-   * Complete a payment after the gateway confirms on the client side.
-   * Mock mode: simulates receipt generation.
-   *
-   * @param {{ paymentId, orderId, gateway, gatewayPaymentId }} payload
-   * @returns {Promise<{ receipt }>}
-   */
   async completePayment(payload) {
-    if (!this._backendConnected) {
+    if (this._mockMode || !this._backendConnected) {
+      const { mockPaymentService } = await import('./mockPaymentService.js');
       return mockPaymentService.complete(payload);
     }
 
-    const response = await axios.post(
-      `${this._backendBaseUrl}/api/v1/payments/complete`,
-      payload,
-      { headers: this._authHeaders() }
-    );
+    try {
+      const response = await axios.post(
+        `${this._backendBaseUrl}/api/v1/payments/complete`,
+        payload,
+        { headers: this._authHeaders() }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error completing payment:', error);
+      throw error;
+    }
+  }
 
-    return response.data;
-  },
-
-  /**
-   * Poll payment status.
-   * @param {{ gateway: string, paymentId: string }} params
-   * @returns {Promise<{ verified: boolean, status: string }>}
-   */
   async verifyPayment({ gateway, paymentId }) {
-    if (!this._backendConnected) {
+    if (this._mockMode || !this._backendConnected) {
       return { verified: true, status: 'SUCCESS' };
     }
 
-    const response = await axios.get(
-      `${this._backendBaseUrl}/api/v1/payments/status/${paymentId}`,
-      { headers: this._authHeaders() }
-    );
+    try {
+      const response = await axios.get(
+        `${this._backendBaseUrl}/api/v1/payments/status/${paymentId}`,
+        { headers: this._authHeaders() }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      throw error;
+    }
+  }
 
-    return response.data;
-  },
-
-  /**
-   * Fetch payment history for a user.
-   * @param {string} userId
-   * @returns {Promise<Payment[]>}
-   */
   async getPaymentHistory(userId) {
-    if (!this._backendConnected) {
-      const { default: localDB } = await import('../localdb/localDB.js');
+    if (this._mockMode || !this._backendConnected) {
+      const localDB = (await import('../localdb/localDB.js')).default;
       return localDB.getPaymentsByUserId(userId);
     }
 
-    const response = await axios.get(
-      `${this._backendBaseUrl}/api/v1/payments/history/${userId}`,
-      { headers: this._authHeaders() }
-    );
+    try {
+      const response = await axios.get(
+        `${this._backendBaseUrl}/api/v1/payments/history/${userId}`,
+        { headers: this._authHeaders() }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      return [];
+    }
+  }
 
-    return response.data;
-  },
-
-  /**
-   * Fetch pending bills for a department.
-   * @param {string} userId
-   * @param {string} dept
-   * @returns {Promise<Bill[]>}
-   */
   async getBills(userId, dept) {
-    if (!this._backendConnected) {
-      const { default: localDB } = await import('../localdb/localDB.js');
+    if (this._mockMode || !this._backendConnected) {
+      const localDB = (await import('../localdb/localDB.js')).default;
       return localDB.getBillsByUserAndDept(userId, dept);
     }
 
-    const response = await axios.get(
-      `${this._backendBaseUrl}/api/v1/${dept}/bills`,
-      { params: { userId }, headers: this._authHeaders() }
-    );
+    try {
+      const response = await axios.get(
+        `${this._backendBaseUrl}/api/v1/${dept}/bills`,
+        { params: { userId }, headers: this._authHeaders() }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching bills:', error);
+      return [];
+    }
+  }
+}
 
-    return response.data;
-  },
-};
-
-export default paymentMethods;
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// mockPaymentService.js
-// Create this as a sibling file: modules/orchestrator/mockPaymentService.js
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// import { generateReferenceNo } from '../payment/paymentUtils.js';
-// import { MOCK_DELAY_UPI_MS, MOCK_DELAY_CARD_MS } from '../payment/constants.js';
-//
-// export const mockPaymentService = {
-//   async initiate({ method }) {
-//     await new Promise(r => setTimeout(r, 300));
-//     return {
-//       orderId:     `order_mock_${Date.now()}`,
-//       paymentId:   crypto.randomUUID(),
-//       gateway:     'mock',
-//       gatewayData: {},
-//       expiresAt:   new Date(Date.now() + 15 * 60000).toISOString(),
-//       mockDelay:   method === 'upi' ? MOCK_DELAY_UPI_MS : MOCK_DELAY_CARD_MS,
-//       mode:        'mock',
-//     };
-//   },
-//   async complete({ paymentId, orderId }) {
-//     const refNo = generateReferenceNo('electricity');
-//     return {
-//       receipt: {
-//         referenceNo: refNo,
-//         amount:      null,
-//         dept:        'electricity',
-//         method:      'upi',
-//         paidAt:      new Date().toISOString(),
-//         consumerNo:  null,
-//       }
-//     };
-//   },
-// };
+// Create singleton instance
+const orchestrator = new Orchestrator();
+export default orchestrator;

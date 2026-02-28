@@ -8,6 +8,11 @@ import LanguageSelect from '@/modules/language/LanguageSelect'
 import LoginPage      from '@/modules/auth/LoginPage'
 import RegisterPage   from '@/modules/auth/RegisterPage'
 import Dashboard      from '@/components/kiosk/Dashboard'
+// Add this import at the top
+import ReceiptScreen from '@/modules/payments/ReceiptScreen'
+
+// Inside your Routes, add this line (after dashboard route)
+<Route path="/receipt/:id" element={<Protected><ReceiptScreen /></Protected>} />
 
 // Orchestrator stub — real backend connection lives here later
 import '@/modules/orchestrator/orchestrator'
