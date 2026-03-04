@@ -795,7 +795,616 @@ class ElectricityServiceManager:
         # In production, query from database
         pass
 
+# ============================================================================
+# 5.5 ELECTRICITY COMPLAINT SERVICE (NEW)
+# ============================================================================
 
+class ComplaintCategory(Enum):
+    """Categories for electricity complaints"""
+    BILLING = "BILLING"  # Wrong bill, overcharging
+    POWER_OUTAGE = "POWER_OUTAGE"  # No electricity
+    METER_ISSUE = "METER_ISSUE"  # Meter not working, slow/fast
+    VOLTAGE_FLUCTUATION = "VOLTAGE_FLUCTUATION"  # High/low voltage
+    WIRE_DAMAGE = "WIRE_DAMAGE"  # Broken wires, dangerous
+    STREET_LIGHT = "STREET_LIGHT"  # Street light not working
+    CONNECTION_ISSUE = "CONNECTION_ISSUE"  # Loose connection
+    OTHER = "OTHER"  # Anything else
+
+
+class ComplaintPriority(Enum):
+    """Priority levels for complaints"""
+    LOW = "LOW"  # Minor issue, can wait
+    NORMAL = "NORMAL"  # Standard complaint
+    HIGH = "HIGH"  # Urgent
+    URGENT = "URGENT"  # Emergency (wire down, fire risk)
+
+
+class ElectricityComplaintService:
+    """
+    ELECTRICITY_COMPLAINT Service
+    Handle citizen complaints about electricity services
+    - Billing disputes
+    - Power outages
+    - Meter problems
+    - Safety hazards
+    - Street light issues
+    """
+    
+    def __init__(self, db_service=None):
+        self.db_service = db_service
+        self.validator = ElectricityValidationService()
+    
+    def create_complaint(
+        self,
+        customer_id: str,
+        meter_number: Optional[str],  # Can be None for street lights/general
+        category: ComplaintCategory,
+        priority: ComplaintPriority,
+        description: str,
+        location: Optional[str] = None,  # For street lights/non-meter issues
+        contact_phone: Optional[str] = None,
+        photo_refs: Optional[List[str]] = None
+    ) -> ServiceRequest:
+        """
+        Create a new complaint
+        
+        Args:
+            customer_id: Customer ID / Aadhar
+            meter_number: Associated meter (optional)
+            category: Type of complaint
+            priority: Urgency level
+            description: Detailed description
+            location: Location (for non-meter issues)
+            contact_phone: Phone for follow-up
+            photo_refs: References to uploaded photos
+        
+        Returns:
+            ServiceRequest in DRAFT status
+        """
+        # Validate meter if provided
+        if meter_number and not self.validator.validate_meter_number(meter_number):
+            raise ValueError(ErrorCode.INVALID_DATA.value, "Invalid meter number format")
+        
+        # Validate description
+        if not description or len(description.strip()) < 10:
+            raise ValueError(ErrorCode.INVALID_DATA.value, "Description must be at least 10 characters")
+        
+        # Create service request
+        request = ServiceRequest(
+            service_type=ServiceType.ELECTRICITY_COMPLAINT,
+            initiator_id=customer_id,
+            beneficiary_id=customer_id,
+            current_owner=OwnershipType.USER,
+            payload={
+                "customer_id": customer_id,
+                "meter_number": meter_number,
+                "complaint_category": category.value,
+                "priority": priority.value,
+                "description": description,
+                "location": location,
+                "contact_phone": contact_phone,
+                "photo_refs": photo_refs or [],
+                "created_timestamp": datetime.utcnow().isoformat(),
+                "expected_response_hours": self._get_sla_hours(priority)
+            }
+        )
+        
+        logger.info(f"Created complaint: {request.service_request_id} - {category.value}")
+        return request
+    
+    def submit_complaint(self, service_request: ServiceRequest) -> ServiceRequest:
+        """
+        Submit complaint for processing
+        
+        Args:
+            service_request: Request in DRAFT status
+        
+        Returns:
+            Updated request with SUBMITTED status
+        """
+        if service_request.status != ServiceStatus.DRAFT:
+            raise ValueError(f"Cannot submit in {service_request.status.value} status")
+        
+        service_request.update_status(
+            ServiceStatus.SUBMITTED,
+            "Complaint submitted by customer",
+            new_owner=OwnershipType.SYSTEM
+        )
+        
+        return service_request
+    
+    def acknowledge_complaint(self, service_request: ServiceRequest, 
+                             assigned_to: str) -> ServiceRequest:
+        """
+        Department acknowledges complaint and assigns to officer
+        
+        Args:
+            service_request: Request in SUBMITTED status
+            assigned_to: Officer ID assigned to handle
+        
+        Returns:
+            Updated request with ACKNOWLEDGED status
+        """
+        if service_request.status != ServiceStatus.SUBMITTED:
+            raise ValueError(f"Cannot acknowledge in {service_request.status.value} status")
+        
+        service_request.payload["assigned_to"] = assigned_to
+        service_request.payload["acknowledged_at"] = datetime.utcnow().isoformat()
+        
+        service_request.update_status(
+            ServiceStatus.ACKNOWLEDGED,
+            f"Complaint assigned to officer {assigned_to}",
+            new_owner=OwnershipType.DEPARTMENT
+        )
+        
+        return service_request
+    
+    def start_investigation(self, service_request: ServiceRequest) -> ServiceRequest:
+        """
+        Mark complaint as being investigated
+        
+        Args:
+            service_request: Request in ACKNOWLEDGED status
+        
+        Returns:
+            Updated request with IN_PROGRESS status
+        """
+        if service_request.status != ServiceStatus.ACKNOWLEDGED:
+            raise ValueError(f"Cannot investigate in {service_request.status.value} status")
+        
+        service_request.payload["investigation_started_at"] = datetime.utcnow().isoformat()
+        
+        service_request.update_status(
+            ServiceStatus.IN_PROGRESS,
+            "Investigation in progress",
+            new_owner=OwnershipType.DEPARTMENT
+        )
+        
+        return service_request
+    
+    def resolve_complaint(
+        self, 
+        service_request: ServiceRequest,
+        resolution_notes: str,
+        compensation_amount: Optional[Decimal] = None
+    ) -> ServiceRequest:
+        """
+        Resolve the complaint
+        
+        Args:
+            service_request: Request in IN_PROGRESS status
+            resolution_notes: How the complaint was resolved
+            compensation_amount: Any refund/credit given
+        
+        Returns:
+            Updated request with DELIVERED status
+        """
+        if service_request.status != ServiceStatus.IN_PROGRESS:
+            raise ValueError(f"Cannot resolve in {service_request.status.value} status")
+        
+        service_request.payload["resolution_notes"] = resolution_notes
+        service_request.payload["resolved_at"] = datetime.utcnow().isoformat()
+        if compensation_amount:
+            service_request.payload["compensation_amount"] = str(compensation_amount)
+        
+        # Calculate response time for SLA tracking
+        created = datetime.fromisoformat(service_request.created_at.isoformat())
+        resolved = datetime.utcnow()
+        response_hours = (resolved - created).total_seconds() / 3600
+        service_request.payload["response_time_hours"] = round(response_hours, 2)
+        
+        service_request.update_status(
+            ServiceStatus.DELIVERED,
+            f"Complaint resolved: {resolution_notes[:50]}...",
+            new_owner=OwnershipType.SYSTEM,
+            metadata={
+                "resolution_time_hours": response_hours,
+                "compensation": str(compensation_amount) if compensation_amount else None
+            }
+        )
+        
+        return service_request
+    
+    def reject_complaint(self, service_request: ServiceRequest, 
+                        rejection_reason: str) -> ServiceRequest:
+        """
+        Reject complaint as invalid
+        
+        Args:
+            service_request: Request in any non-terminal state
+            rejection_reason: Why it was rejected
+        
+        Returns:
+            Updated request with DENIED status
+        """
+        service_request.payload["rejection_reason"] = rejection_reason
+        service_request.payload["rejected_at"] = datetime.utcnow().isoformat()
+        
+        service_request.update_status(
+            ServiceStatus.DENIED,
+            f"Complaint rejected: {rejection_reason}",
+            new_owner=OwnershipType.DEPARTMENT
+        )
+        service_request.error_code = ErrorCode.INVALID_DATA
+        service_request.error_message = rejection_reason
+        
+        return service_request
+    
+    def _get_sla_hours(self, priority: ComplaintPriority) -> int:
+        """Get expected response time based on priority"""
+        sla_map = {
+            ComplaintPriority.URGENT: 2,    # 2 hours
+            ComplaintPriority.HIGH: 8,       # 8 hours
+            ComplaintPriority.NORMAL: 24,    # 1 day
+            ComplaintPriority.LOW: 48,       # 2 days
+        }
+        return sla_map.get(priority, 24)
+    
+    def escalate_complaint(self, service_request: ServiceRequest, 
+                          escalation_level: str, reason: str) -> ServiceRequest:
+        """
+        Escalate complaint to higher authority if not resolved in time
+        
+        Args:
+            service_request: Request in progress
+            escalation_level: Next level (supervisor, manager, etc.)
+            reason: Why escalation needed
+        
+        Returns:
+            Updated request with escalated status tracking
+        """
+        service_request.payload["escalation"] = {
+            "level": escalation_level,
+            "reason": reason,
+            "escalated_at": datetime.utcnow().isoformat()
+        }
+        
+        # Add to history but keep same status
+        service_request._add_status_history(
+            service_request.status,
+            f"Escalated to {escalation_level}: {reason}"
+        )
+        
+        return service_request
+
+
+# ============================================================================
+# 5.6 ELECTRICITY METER READING SUBMISSION SERVICE (NEW)
+# ============================================================================
+
+class ReadingSource(Enum):
+    """How the reading was submitted"""
+    KIOSK = "KIOSK"  # At physical kiosk
+    MOBILE_APP = "MOBILE_APP"  # Via smartphone app
+    SMS = "SMS"  # Via text message
+    IVR = "IVR"  # Phone call
+    MANUAL = "MANUAL"  # Officer entered
+
+
+class ReadingVerificationStatus(Enum):
+    """Verification state of reading"""
+    PENDING = "PENDING"  # Awaiting verification
+    VERIFIED = "VERIFIED"  # Auto-verified or officer verified
+    REJECTED = "REJECTED"  # Invalid reading
+    FLAGGED = "FLAGGED"  # Unusual consumption, needs review
+
+
+class ElectricityMeterReadingSubmissionService:
+    """
+    ELECTRICITY_METER_READING_SUBMISSION Service
+    Allow customers to submit their own meter readings
+    - Self-reading submission
+    - Automatic bill calculation
+    - Reading validation against history
+    - Anomaly detection
+    """
+    
+    def __init__(self, db_service=None):
+        self.db_service = db_service
+        self.validator = ElectricityValidationService()
+    
+    def create_reading_submission(
+        self,
+        customer_id: str,
+        meter_number: str,
+        reading_value: Decimal,
+        reading_date: datetime,
+        photo_ref: Optional[str] = None,  # Photo of meter for verification
+        source: ReadingSource = ReadingSource.KIOSK,
+        notes: Optional[str] = None
+    ) -> ServiceRequest:
+        """
+        Create a meter reading submission
+        
+        Args:
+            customer_id: Customer ID / Aadhar
+            meter_number: Meter being read
+            reading_value: Current meter reading in kWh
+            reading_date: Date when reading was taken
+            photo_ref: Reference to uploaded meter photo
+            source: How reading was submitted
+            notes: Additional notes
+        
+        Returns:
+            ServiceRequest in DRAFT status
+        """
+        # Validate meter
+        if not self.validator.validate_meter_number(meter_number):
+            raise ValueError(ErrorCode.INVALID_DATA.value, "Invalid meter number format")
+        
+        # Validate reading
+        if reading_value <= 0:
+            raise ValueError(ErrorCode.INVALID_DATA.value, "Reading must be positive")
+        
+        # Check if reading is reasonable (not astronomically high)
+        if reading_value > 1000000:  # 1 million units is suspicious
+            logger.warning(f"Suspicious high reading: {reading_value} for meter {meter_number}")
+            # We'll still accept but flag it
+        
+        # Create service request
+        request = ServiceRequest(
+            service_type=ServiceType.ELECTRICITY_METER_READING_SUBMISSION,
+            initiator_id=customer_id,
+            beneficiary_id=customer_id,
+            current_owner=OwnershipType.USER,
+            payload={
+                "customer_id": customer_id,
+                "meter_number": meter_number,
+                "reading_value": str(reading_value),
+                "reading_date": reading_date.isoformat(),
+                "photo_ref": photo_ref,
+                "submission_source": source.value,
+                "notes": notes,
+                "verification_status": ReadingVerificationStatus.PENDING.value,
+                "created_timestamp": datetime.utcnow().isoformat()
+            }
+        )
+        
+        logger.info(f"Created meter reading submission: {request.service_request_id} for meter {meter_number}")
+        return request
+    
+    def submit_reading(self, service_request: ServiceRequest) -> ServiceRequest:
+        """
+        Submit reading for processing and verification
+        
+        Args:
+            service_request: Request in DRAFT status
+        
+        Returns:
+            Updated request with SUBMITTED status
+        """
+        if service_request.status != ServiceStatus.DRAFT:
+            raise ValueError(f"Cannot submit in {service_request.status.value} status")
+        
+        # Get previous reading for this meter (would come from DB)
+        previous_reading = self._get_previous_reading(
+            service_request.payload.get("meter_number")
+        )
+        
+        current_reading = Decimal(service_request.payload.get("reading_value"))
+        
+        # Validate reading is not less than previous
+        if previous_reading and current_reading < previous_reading:
+            service_request.payload["verification_status"] = ReadingVerificationStatus.REJECTED.value
+            service_request.update_status(
+                ServiceStatus.FAILED,
+                "Reading is less than previous reading",
+                new_owner=OwnershipType.SYSTEM
+            )
+            service_request.error_code = ErrorCode.INVALID_DATA
+            service_request.error_message = f"Reading {current_reading} is below previous {previous_reading}"
+            return service_request
+        
+        # Calculate consumption
+        if previous_reading:
+            consumption = current_reading - previous_reading
+            service_request.payload["consumption_units"] = str(consumption)
+            service_request.payload["previous_reading"] = str(previous_reading)
+            
+            # Check for unusual consumption (anomaly detection)
+            if self._is_unusual_consumption(previous_reading, current_reading):
+                service_request.payload["verification_status"] = ReadingVerificationStatus.FLAGGED.value
+                service_request.payload["flag_reason"] = "Unusual consumption pattern"
+                logger.info(f"Flagged unusual consumption for meter {service_request.payload.get('meter_number')}")
+        
+        service_request.update_status(
+            ServiceStatus.SUBMITTED,
+            "Meter reading submitted for verification",
+            new_owner=OwnershipType.SYSTEM
+        )
+        
+        return service_request
+    
+    def verify_reading(self, service_request: ServiceRequest, 
+                      verified_by: str = "SYSTEM") -> ServiceRequest:
+        """
+        Verify the submitted reading (auto or manual)
+        
+        Args:
+            service_request: Request in SUBMITTED status
+            verified_by: Who verified (SYSTEM or officer ID)
+        
+        Returns:
+            Updated request with appropriate status
+        """
+        if service_request.status != ServiceStatus.SUBMITTED:
+            raise ValueError(f"Cannot verify in {service_request.status.value} status")
+        
+        verification_status = service_request.payload.get("verification_status")
+        
+        # If flagged, need manual review
+        if verification_status == ReadingVerificationStatus.FLAGGED.value:
+            service_request.update_status(
+                ServiceStatus.PENDING,
+                "Reading flagged for manual review",
+                new_owner=OwnershipType.DEPARTMENT
+            )
+            return service_request
+        
+        # Auto-verify if no issues
+        service_request.payload["verification_status"] = ReadingVerificationStatus.VERIFIED.value
+        service_request.payload["verified_at"] = datetime.utcnow().isoformat()
+        service_request.payload["verified_by"] = verified_by
+        
+        # Calculate estimated bill
+        if "consumption_units" in service_request.payload:
+            bill = self._calculate_bill(
+                Decimal(service_request.payload["consumption_units"])
+            )
+            service_request.payload["estimated_bill"] = {
+                "amount": str(bill["amount"]),
+                "breakdown": bill["breakdown"]
+            }
+        
+        service_request.update_status(
+            ServiceStatus.APPROVED,
+            f"Meter reading verified by {verified_by}",
+            new_owner=OwnershipType.SYSTEM
+        )
+        
+        return service_request
+    
+    def generate_bill(self, service_request: ServiceRequest) -> ServiceRequest:
+        """
+        Generate bill from verified reading
+        
+        Args:
+            service_request: Request in APPROVED status
+        
+        Returns:
+            Updated request with DELIVERED status and bill details
+        """
+        if service_request.status != ServiceStatus.APPROVED:
+            raise ValueError(f"Cannot generate bill in {service_request.status.value} status")
+        
+        meter_number = service_request.payload.get("meter_number")
+        consumption = Decimal(service_request.payload.get("consumption_units", 0))
+        billing_period = self._get_current_billing_period()
+        
+        # Calculate final bill
+        bill = self._calculate_bill(consumption)
+        
+        # Generate bill number
+        bill_number = f"BILL_{meter_number}_{billing_period}"
+        
+        service_request.payload["bill"] = {
+            "bill_number": bill_number,
+            "billing_period": billing_period,
+            "consumption_units": str(consumption),
+            "amount": str(bill["amount"]),
+            "breakdown": bill["breakdown"],
+            "due_date": (datetime.utcnow() + timedelta(days=15)).isoformat(),
+            "generated_at": datetime.utcnow().isoformat()
+        }
+        
+        service_request.update_status(
+            ServiceStatus.DELIVERED,
+            f"Bill generated for period {billing_period}",
+            new_owner=OwnershipType.SYSTEM,
+            metadata={
+                "bill_number": bill_number,
+                "bill_amount": str(bill["amount"]),
+                "due_date": service_request.payload["bill"]["due_date"]
+            }
+        )
+        
+        return service_request
+    
+    def reject_reading(self, service_request: ServiceRequest, 
+                      rejection_reason: str) -> ServiceRequest:
+        """
+        Reject invalid reading
+        
+        Args:
+            service_request: Request in SUBMITTED or PENDING status
+            rejection_reason: Why reading was rejected
+        
+        Returns:
+            Updated request with DENIED status
+        """
+        service_request.payload["verification_status"] = ReadingVerificationStatus.REJECTED.value
+        service_request.payload["rejection_reason"] = rejection_reason
+        service_request.payload["rejected_at"] = datetime.utcnow().isoformat()
+        
+        service_request.update_status(
+            ServiceStatus.DENIED,
+            f"Meter reading rejected: {rejection_reason}",
+            new_owner=OwnershipType.DEPARTMENT
+        )
+        service_request.error_code = ErrorCode.INVALID_DATA
+        service_request.error_message = rejection_reason
+        
+        return service_request
+    
+    # ========== Helper Methods (would connect to DB in production) ==========
+    
+    def _get_previous_reading(self, meter_number: str) -> Optional[Decimal]:
+        """
+        Get last verified reading for this meter
+        In production, this would query the database
+        """
+        # Mock data for demonstration
+        mock_readings = {
+            "ELEC123456": Decimal("1250.5"),
+            "ELEC789012": Decimal("3450.75"),
+        }
+        return mock_readings.get(meter_number)
+    
+    def _is_unusual_consumption(self, previous: Decimal, current: Decimal) -> bool:
+        """Detect if consumption pattern is unusual (> 2x or < 0.5x normal)"""
+        if previous == 0:
+            return False
+        consumption = current - previous
+        # This would compare against historical average in production
+        # For now, flag if consumption > 1000 units (suspiciously high)
+        return consumption > 1000
+    
+    def _calculate_bill(self, consumption: Decimal) -> dict:
+        """
+        Calculate bill amount based on consumption
+        Simplified slab rates for demonstration
+        """
+        # Slab rates (simplified)
+        if consumption <= 100:
+            rate = 3.50
+        elif consumption <= 300:
+            rate = 5.00
+        elif consumption <= 500:
+            rate = 6.50
+        else:
+            rate = 8.00
+        
+        # Fixed charges
+        fixed_charges = Decimal("100.00")
+        
+        # Calculate
+        variable = consumption * Decimal(str(rate))
+        subtotal = fixed_charges + variable
+        
+        # Tax (18% GST)
+        tax = subtotal * Decimal("0.18")
+        total = subtotal + tax
+        
+        return {
+            "amount": total,
+            "breakdown": {
+                "consumption": float(consumption),
+                "rate_per_unit": rate,
+                "variable_charges": float(variable),
+                "fixed_charges": float(fixed_charges),
+                "subtotal": float(subtotal),
+                "tax_percent": 18,
+                "tax_amount": float(tax),
+                "total": float(total)
+            }
+        }
+    
+    def _get_current_billing_period(self) -> str:
+        """Get current billing period in YYYY-MM format"""
+        now = datetime.utcnow()
+        return now.strftime("%Y-%m")
+
+        
 # ============================================================================
 # 7. API LAYER (KIOSK Interface)
 # ============================================================================
