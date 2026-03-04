@@ -214,6 +214,62 @@ def _rz_auth():
     return (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET)
 
 
+async def create_razorpay_customer_with_key(
+    name:       str,
+    contact:    str,
+    email:      str,
+    key_id:     str,
+    key_secret: str,
+    notes:      Optional[Dict[str, str]] = None,
+) -> str:
+    """
+    Create a Razorpay customer using a specific department's API key pair.
+
+    Called during kiosk OTP verification (first-time users only).
+    Returns the Razorpay customer ID string (e.g. "cust_XXXXXXXXXXXXXX").
+
+    In mock mode (no real keys supplied) returns a deterministic fake ID
+    so the rest of the flow works without a live Razorpay account.
+
+    Raises ValueError on API errors so the caller can decide whether to
+    fail hard or continue without a customer ID.
+    """
+    if not key_id or not key_secret:
+        # Mock / dev mode — generate a stable-looking fake customer ID
+        fake_id = "cust_mock_" + uuid.uuid5(uuid.NAMESPACE_DNS, contact).hex[:14]
+        logger.info(f"[Razorpay] mock mode — returning fake customer id {fake_id}")
+        return fake_id
+
+    payload: Dict[str, Any] = {
+        "name":    name,
+        "contact": contact,
+        "email":   email or "",
+        "notes":   notes or {"source": "koisk_kiosk"},
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.post(
+                f"{RAZORPAY_BASE}/customers",
+                json=payload,
+                auth=(key_id, key_secret),
+            )
+            response.raise_for_status()
+            data        = response.json()
+            customer_id = data["id"]
+            logger.info(f"[Razorpay] customer created: {customer_id} for contact={contact}")
+            return customer_id
+
+    except httpx.HTTPStatusError as exc:
+        body = exc.response.text
+        logger.error(f"[Razorpay] customer creation HTTP error {exc.response.status_code}: {body}")
+        raise ValueError(f"Razorpay API error {exc.response.status_code}: {body}") from exc
+
+    except httpx.RequestError as exc:
+        logger.error(f"[Razorpay] network error during customer creation: {exc}")
+        raise ValueError(f"Razorpay network error: {exc}") from exc
+
+
 async def razorpay_create_order(amount: float, currency: str,
                                  receipt: str, notes: Optional[Dict] = None) -> Dict[str, Any]:
     """POST /orders → returns order object."""

@@ -346,3 +346,113 @@ class Refund(Base):
     created_at        = Column(DateTime, default=datetime.utcnow)
 
     payment = relationship("Payment", back_populates="refunds")
+
+
+# ─── Kiosk Sessions ───────────────────────────────────────────────────────────
+
+class KioskSession(Base):
+    """
+    One row per kiosk visitor interaction.
+
+    Flow:
+      1. Citizen enters name / phone / email  →  row created, is_verified=False
+      2. OTP sent to phone                    →  otp_code stored (hashed in prod)
+      3. Citizen enters OTP                   →  is_verified=True, otp_verified_at set
+      4. Razorpay customer created            →  razorpay_customer_id stored
+      5. Session token issued                 →  session_token stored
+      6. Citizen taps Done/Exit               →  ended_at set
+
+    Returning visitor (same phone):
+      - Existing row looked up by phone_number
+      - razorpay_customer_id reused
+      - New session_token issued, ended_at reset
+    """
+    __tablename__ = "kiosk_sessions"
+
+    id                   = Column(Integer,      primary_key=True, index=True)
+
+    # Identity
+    full_name            = Column(String(255),  nullable=False)
+    phone_number         = Column(String(20),   nullable=False, index=True)
+    email                = Column(String(255),  nullable=True)
+
+    # OTP verification
+    otp_code             = Column(String(10),   nullable=True)   # store hashed in production
+    otp_sent_at          = Column(DateTime,     nullable=True)
+    otp_verified_at      = Column(DateTime,     nullable=True)
+    otp_attempts         = Column(Integer,      default=0)
+    is_verified          = Column(Boolean,      default=False)
+
+    # Razorpay — created once, reused on return visits
+    razorpay_customer_id = Column(String(200),  nullable=True, index=True)
+
+    # Session token — issued after OTP success, used to auth subsequent kiosk calls
+    session_token        = Column(String(200),  nullable=True, unique=True, index=True)
+    session_expires_at   = Column(DateTime,     nullable=True)
+
+    # Lifecycle
+    is_returning_user    = Column(Boolean,      default=False)
+    started_at           = Column(DateTime,     default=datetime.utcnow)
+    ended_at             = Column(DateTime,     nullable=True)   # set when user taps Done/Exit
+
+    # Which kiosk terminal (useful when multiple kiosks deployed)
+    kiosk_id             = Column(String(100),  nullable=True)
+
+    __table_args__ = (
+        Index("idx_ks_phone",     "phone_number"),
+        Index("idx_ks_token",     "session_token"),
+        Index("idx_ks_started",   "started_at"),
+    )
+
+
+# ─── Kiosk Config ─────────────────────────────────────────────────────────────
+
+class KioskConfig(Base):
+    """
+    Per-department Razorpay credentials and global kiosk settings.
+
+    One row per department (electricity / water / municipal).
+    One extra row with department='global' for kiosk-wide settings.
+
+    Razorpay keys are stored encrypted at rest in production.
+    The hint columns (last 4 chars) are safe to return to the UI.
+
+    Global settings JSON shape (department='global'):
+    {
+        "kiosk_name":        "SUVIDHA Kiosk — Ward 5",
+        "kiosk_location":    "Near Town Hall",
+        "default_language":  "en",
+        "otp_expiry_secs":   300,
+        "session_ttl_secs":  1800,
+        "support_phone":     "1800-XXX-XXXX"
+    }
+    """
+    __tablename__ = "kiosk_config"
+
+    id                    = Column(Integer,     primary_key=True, index=True)
+
+    # 'electricity' | 'water' | 'municipal' | 'global'
+    department            = Column(String(50),  nullable=False, unique=True, index=True)
+
+    # Razorpay credentials for this department
+    # Store full value server-side; only hint is returned to frontend
+    razorpay_key_id       = Column(String(200), nullable=True)
+    razorpay_key_secret   = Column(Text,        nullable=True)   # encrypted in prod
+    razorpay_key_id_hint  = Column(String(10),  nullable=True)   # last 4 chars, safe to show
+    razorpay_mode         = Column(String(10),  default="test")  # 'test' | 'live'
+
+    # Whether this department is currently active on the kiosk
+    is_active             = Column(Boolean,     default=True)
+
+    # Freeform JSON for any extra per-department or global settings
+    settings              = Column(JSONB,       default=dict)
+
+    configured_by_admin   = Column(Integer,     ForeignKey("admins.id"), nullable=True)
+    created_at            = Column(DateTime,    default=datetime.utcnow)
+    updated_at            = Column(DateTime,    default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    admin = relationship("Admin")
+
+    __table_args__ = (
+        Index("idx_kc_department", "department"),
+    )
