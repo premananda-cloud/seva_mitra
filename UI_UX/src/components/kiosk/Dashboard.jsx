@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/modules/auth/authStore'
 import localDB from '/src/modules/localdb/localDB.js'
 import { clsx } from 'clsx'
+import { useKeyboardInput } from "../../hooks/useKeyboardInput"
 
 const SERVICE_TILES = [
   { key: 'electricity', icon: '⚡', color: 'from-amber-400 to-yellow-500',  textColor: 'text-amber-900' },
@@ -37,7 +38,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return
     localDB.getRequestsByUser(user.id).then(reqs => {
-      // Sort newest first
       const sorted = [...reqs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       setRequests(sorted)
       setLoading(false)
@@ -109,6 +109,16 @@ export default function Dashboard() {
             ))}
           </div>
         </section>
+
+        {/* Test input for virtual keyboard */}
+        <div className="mt-4 p-4 bg-white rounded-lg">
+          <input
+            ref={useKeyboardInput()}
+            type="text"
+            placeholder="Click me to test keyboard"
+            className="w-full p-2 border rounded"
+          />
+        </div>
 
         {/* ── Recent Activity ──────────────────────────────────── */}
         <section className="animate-fade-up animation-delay-300">
