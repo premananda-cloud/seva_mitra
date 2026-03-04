@@ -30,8 +30,8 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from ..department.database.database import get_db, init_db
-from ..department.database.models import (
+from src.department.database.database import get_db, init_db
+from src.department.database.models import (
     Admin, ElectricityMeter, MunicipalConsumer, Payment,
     ServiceRequest as ServiceRequestModel, User, WaterConsumer,
     KioskSession, KioskConfig,
@@ -43,7 +43,7 @@ from ..payment.payment_handler import (
     verify_portone_webhook, verify_razorpay_webhook,
     create_razorpay_customer_with_key,
 )
-from ..payment.mock_payment_engine import svc_complete, svc_initiate
+from src.payment.mock_payment_engine import svc_complete, svc_initiate
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
