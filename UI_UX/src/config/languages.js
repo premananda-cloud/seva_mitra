@@ -13,6 +13,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'ta', name: 'Tamil',    nativeName: 'தமிழ்',    flag: '🇮🇳', script: 'Tamil'      },
   { code: 'kn', name: 'Kannada',  nativeName: 'ಕನ್ನಡ',    flag: '🇮🇳', script: 'Kannada'    },
   { code: 'mr', name: 'Marathi',  nativeName: 'मराठी',    flag: '🇮🇳', script: 'Devanagari' },
+  { code: 'ma', name: 'Manipuri', nativeName: 'ꯃꯅꯤꯄꯨꯔꯤ', flag: '🇮🇳', script: 'Meitei-Mayek'}
 ]
 
 export const DEFAULT_LANGUAGE = 'en'
