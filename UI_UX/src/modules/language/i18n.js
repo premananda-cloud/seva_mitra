@@ -18,6 +18,7 @@ import te from './locales/te.json'
 import ta from './locales/ta.json'
 import kn from './locales/kn.json'
 import mr from './locales/mr.json'
+import ma from './locales/ma.json'
 
 const resources = {
   en: { translation: en },
@@ -27,6 +28,7 @@ const resources = {
   ta: { translation: ta },
   kn: { translation: kn },
   mr: { translation: mr },
+  ma: { translation: ma }
 }
 
 i18n
