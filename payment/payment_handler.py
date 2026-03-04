@@ -1,213 +1,165 @@
 """
-KOISK Payment Handler
-=====================
-Backend integration for Razorpay and PortOne (formerly Cashfree).
+project/payment/payment_handler.py
+====================================
+Razorpay + PortOne backend integration.
 
-Architecture:
-  - ALL gateway API calls happen here (secret keys NEVER go to frontend)
-  - Frontend (orchestrator.js) calls FastAPI → FastAPI calls this handler
-  - Webhook endpoints verify HMAC signatures server-side
+Implements every endpoint in Section 2 of KOISK_Payment_Requirements.md.
+Reads/writes to PostgreSQL via SQLAlchemy (the same DB session used by koisk_api.py).
+All gateway secret keys are loaded from environment — never hardcoded.
 
-Env vars required (add to .env):
-  RAZORPAY_KEY_ID        = rzp_live_xxxxxxxxxxxx
-  RAZORPAY_KEY_SECRET    = xxxxxxxxxxxxxxxxxxxx
-  PORTONE_STORE_ID       = your-store-id
-  PORTONE_CHANNEL_KEY    = your-channel-key
-  PORTONE_API_SECRET     = your-portone-api-secret
-  PAYMENT_WEBHOOK_SECRET = shared-webhook-hmac-secret
+ENV vars required (see .env.payment):
+  RAZORPAY_KEY_ID
+  RAZORPAY_KEY_SECRET
+  PORTONE_API_SECRET
+  PORTONE_STORE_ID
+  PORTONE_CHANNEL_KEY
+  PAYMENT_WEBHOOK_SECRET   ← same value set in both gateway dashboards
 """
 
 import hashlib
 import hmac
-import json
 import logging
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import httpx
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Config — loaded from environment (never hardcoded)
-# ---------------------------------------------------------------------------
+# ─── Gateway config ───────────────────────────────────────────────────────────
 
-RAZORPAY_KEY_ID     = os.getenv("RAZORPAY_KEY_ID", "")
+RAZORPAY_KEY_ID     = os.getenv("RAZORPAY_KEY_ID",     "")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
-
-PORTONE_STORE_ID    = os.getenv("PORTONE_STORE_ID", "")
+PORTONE_API_SECRET  = os.getenv("PORTONE_API_SECRET",  "")
+PORTONE_STORE_ID    = os.getenv("PORTONE_STORE_ID",    "")
 PORTONE_CHANNEL_KEY = os.getenv("PORTONE_CHANNEL_KEY", "")
-PORTONE_API_SECRET  = os.getenv("PORTONE_API_SECRET", "")
-
-PORTONE_BASE_URL    = "https://api.portone.io"
-RAZORPAY_BASE_URL   = "https://api.razorpay.com/v1"
-
 WEBHOOK_SECRET      = os.getenv("PAYMENT_WEBHOOK_SECRET", "")
 
+PORTONE_BASE  = "https://api.portone.io"
+RAZORPAY_BASE = "https://api.razorpay.com/v1"
 
-# ---------------------------------------------------------------------------
-# Pydantic models — request / response shapes used by koisk_api.py
-# ---------------------------------------------------------------------------
+# Auto mock-mode when no gateway keys are configured (safe for local dev)
+MOCK_MODE = not RAZORPAY_KEY_SECRET and not PORTONE_API_SECRET
+
+# ─── Reference number sequence (in-process counter; use DB sequence in prod) ──
+
+_ref_counter: Dict[str, int] = {}
+
+def _make_reference(dept: str) -> str:
+    prefix = {"electricity": "ELEC", "gas": "GAS", "water": "WAT"}.get(dept, "PAY")
+    today  = datetime.utcnow().strftime("%Y%m%d")
+    key    = f"{prefix}{today}"
+    _ref_counter[key] = _ref_counter.get(key, 0) + 1
+    return f"PAY-{prefix}-{today}-{_ref_counter[key]:04d}"
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+# ─── Pydantic request / response models ──────────────────────────────────────
+# Field names match the contract in Section 4 of the requirements exactly.
 
 class CustomerRegisterRequest(BaseModel):
-    userId: str
-    name: str
-    contact: str                   # E.164 format  e.g. +919876543210
-    email: str
-    consumerId: Optional[str] = None
-    notes: Optional[Dict[str, str]] = None
+    userId:  str
+    name:    str
+    contact: str                          # must be E.164: +91XXXXXXXXXX
+    email:   str
+    notes:   Optional[Dict[str, str]] = None
 
 
 class CustomerRegisterResponse(BaseModel):
-    userId: str
-    portoneCustomerId: Optional[str] = None
+    success:            bool = True
+    portoneCustomerId:  Optional[str] = None
     razorpayCustomerId: Optional[str] = None
-    name: str
-    contact: str
-    email: str
-    syncedToBackend: bool = True
-    createdAt: str
+    message:            str = "Customer registered successfully"
+    timestamp:          str = Field(default_factory=_now)
 
 
 class InitiatePaymentRequest(BaseModel):
-    userId: str
-    billId: str
-    dept: str                       # electricity | gas | water
-    amount: float
-    currency: str = "INR"
-    gateway: str                    # portone | razorpay
-    method: str                     # upi | card | netbanking
-    customerId: Optional[str] = None
+    userId:     str
+    billId:     str
+    dept:       str                       # electricity | gas | water
+    amount:     float                     # rupees (not paise)
+    currency:   str = "INR"
+    gateway:    str                       # portone | razorpay
+    method:     str                       # upi | card | netbanking
+    customerId: Optional[str] = None      # portone_customer_id
 
 
 class InitiatePaymentResponse(BaseModel):
-    orderId: str
-    paymentId: str                  # our internal UUID
-    gatewayOrderId: str
-    gateway: str
-    mode: str = "real"
-    amount: float
-    currency: str
+    success:     bool = True
+    orderId:     str
+    gateway:     str
+    gatewayData: Dict[str, Any] = {}
+    expiresAt:   Optional[str]  = None
+    message:     str = "Payment order created"
+    timestamp:   str = Field(default_factory=_now)
 
 
 class CompletePaymentRequest(BaseModel):
-    paymentId: str                  # our internal UUID
-    orderId: str
-    gateway: str
-    gatewayPaymentId: str
-    razorpaySignature: Optional[str] = None   # Razorpay only
+    paymentId:         str               # our internal UUID (payments.id)
+    orderId:           str               # gateway order id
+    gateway:           str
+    gatewayPaymentId:  str
+    razorpaySignature: Optional[str] = None   # required for Razorpay
 
 
-class Receipt(BaseModel):
+class ReceiptData(BaseModel):
     referenceNo: str
-    amount: float
-    dept: str
-    method: str
-    paidAt: str
-    consumerNo: Optional[str] = None
-    gatewayPaymentId: str
-    gateway: str
+    amount:      float
+    dept:        str
+    method:      str
+    paidAt:      str
+    consumerNo:  Optional[str] = None
 
 
 class CompletePaymentResponse(BaseModel):
-    success: bool
-    receipt: Receipt
+    success:   bool = True
+    status:    str  = "SUCCESS"
+    receipt:   ReceiptData
+    message:   str  = "Payment verified successfully"
+    timestamp: str  = Field(default_factory=_now)
 
 
 class PaymentStatusResponse(BaseModel):
-    paymentId: str
-    status: str                     # PENDING | SUCCESS | FAILED
-    gatewayStatus: Optional[str] = None
-    amount: Optional[float] = None
-    paidAt: Optional[str] = None
+    success:       bool = True
+    paymentId:     str
+    status:        str
+    amount:        Optional[float] = None
+    paidAt:        Optional[str]   = None
+    referenceNo:   Optional[str]   = None
+    timestamp:     str = Field(default_factory=_now)
 
 
-class BillResponse(BaseModel):
-    id: str
-    userId: str
-    dept: str
-    consumerNo: str
-    billMonth: str
-    amountDue: float
-    dueDate: str
-    status: str                     # PENDING | PAID | OVERDUE
+class ErrorResponse(BaseModel):
+    success:    bool = False
+    error_code: str
+    message:    str
+    timestamp:  str = Field(default_factory=_now)
 
 
-# ---------------------------------------------------------------------------
-# In-memory store — replace with DB (PaymentHistory / CustomerProfile tables)
-# ---------------------------------------------------------------------------
+# ─── PortOne API helpers ──────────────────────────────────────────────────────
 
-_customers: Dict[str, Dict] = {}    # userId → customer record
-_payments:  Dict[str, Dict] = {}    # paymentId → payment record
-_bills:     Dict[str, Dict] = {}    # billId → bill record  (seeded below)
-
-
-def _seed_demo_bills():
-    """Seed sample bills so the UI has something to show."""
-    demo_bills = [
-        {
-            "id": "bill-elec-001", "userId": "demo-user-ramesh-001",
-            "dept": "electricity",  "consumerNo": "ELEC-MH-5521",
-            "billMonth": "2026-02", "amountDue": 1240.00,
-            "dueDate": "2026-03-15", "status": "PENDING",
-        },
-        {
-            "id": "bill-gas-001",  "userId": "demo-user-ramesh-001",
-            "dept": "gas",         "consumerNo": "GAS-MH-3310",
-            "billMonth": "2026-02", "amountDue": 680.00,
-            "dueDate": "2026-03-20", "status": "PENDING",
-        },
-        {
-            "id": "bill-water-001","userId": "demo-user-ramesh-001",
-            "dept": "water",       "consumerNo": "WATER-MH-7741",
-            "billMonth": "2026-02", "amountDue": 320.00,
-            "dueDate": "2026-03-25", "status": "PENDING",
-        },
-    ]
-    for b in demo_bills:
-        _bills[b["id"]] = b
-
-
-_seed_demo_bills()
-
-
-# ---------------------------------------------------------------------------
-# Reference number generator
-# ---------------------------------------------------------------------------
-
-_DEPT_PREFIX = {"electricity": "ELEC", "gas": "GAS", "water": "WTR"}
-
-
-def _generate_reference(dept: str) -> str:
-    prefix = _DEPT_PREFIX.get(dept, "PAY")
-    return f"{prefix}{datetime.utcnow().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:6].upper()}"
-
-
-# ---------------------------------------------------------------------------
-# PortOne helpers
-# ---------------------------------------------------------------------------
-
-def _portone_headers() -> Dict[str, str]:
+def _po_headers() -> Dict[str, str]:
     return {
         "Authorization": f"PortOne {PORTONE_API_SECRET}",
-        "Content-Type": "application/json",
+        "Content-Type":  "application/json",
     }
 
 
-async def _portone_create_customer(name: str, contact: str, email: str,
-                                   notes: Optional[Dict] = None) -> str:
-    """
-    Create a customer on PortOne.
-    Returns the PortOne customerId string.
-    """
-    if not PORTONE_API_SECRET:
-        logger.warning("[PortOne] API secret not set — returning mock customer ID")
-        return f"portone_mock_{uuid.uuid4().hex[:12]}"
+async def portone_register_customer(name: str, contact: str, email: str,
+                                    notes: Optional[Dict] = None) -> str:
+    """POST /customers → returns portone customer_id."""
+    if MOCK_MODE:
+        cid = f"cust_portone_{uuid.uuid4().hex[:10]}"
+        logger.info(f"[PortOne MOCK] customer created: {cid}")
+        return cid
 
-    payload = {
+    payload: Dict[str, Any] = {
         "customer_name":  name,
         "customer_phone": contact,
         "customer_email": email,
@@ -215,464 +167,454 @@ async def _portone_create_customer(name: str, contact: str, email: str,
     if notes:
         payload["metadata"] = notes
 
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.post(
-            f"{PORTONE_BASE_URL}/customers",
-            json=payload,
-            headers=_portone_headers(),
-        )
-        resp.raise_for_status()
-        data = resp.json()
+    async with httpx.AsyncClient(timeout=15) as c:
+        r = await c.post(f"{PORTONE_BASE}/customers", json=payload, headers=_po_headers())
+        r.raise_for_status()
+        data = r.json()
+        logger.info(f"[PortOne] customer registered: {data['customer_id']}")
         return data["customer_id"]
 
 
-async def _portone_create_order(payment_id: str, amount: float,
-                                currency: str, customer_id: str,
-                                dept: str) -> str:
-    """
-    Create a PortOne payment order.
-    Returns the PortOne paymentId (used as orderId on the frontend).
-    """
-    if not PORTONE_API_SECRET:
-        return f"portone_order_mock_{uuid.uuid4().hex[:12]}"
+async def portone_create_payment(internal_id: str, amount: float, currency: str,
+                                  customer_id: str, dept: str) -> Dict[str, Any]:
+    """POST /payments → returns payment_id used as orderId."""
+    if MOCK_MODE:
+        oid = f"portone_order_{uuid.uuid4().hex[:10]}"
+        logger.info(f"[PortOne MOCK] order: {oid}")
+        return {"payment_id": oid, "status": "INITIATED"}
 
     payload = {
-        "payment_id":   payment_id,
-        "order_amount": round(amount * 100),   # paise
+        "payment_id":     internal_id,           # we set our own ID
+        "order_amount":   round(amount * 100),    # paise
         "order_currency": currency,
-        "channel_key":  PORTONE_CHANNEL_KEY,
-        "customer_id":  customer_id,
-        "order_name":   f"KOISK {dept.capitalize()} Bill",
+        "channel_key":    PORTONE_CHANNEL_KEY,
+        "customer_id":    customer_id,
+        "order_name":     f"KOISK {dept.capitalize()} Bill",
     }
-
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.post(
-            f"{PORTONE_BASE_URL}/payments",
-            json=payload,
-            headers=_portone_headers(),
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data["payment_id"]
+    async with httpx.AsyncClient(timeout=15) as c:
+        r = await c.post(f"{PORTONE_BASE}/payments", json=payload, headers=_po_headers())
+        r.raise_for_status()
+        return r.json()
 
 
-async def _portone_get_payment_status(portone_payment_id: str) -> Dict:
-    """Server-to-server status check — used to verify completion."""
-    if not PORTONE_API_SECRET:
-        return {"status": "Paid", "amount": 0}
+async def portone_get_payment(portone_payment_id: str) -> Dict[str, Any]:
+    """GET /payments/:id — server-to-server status check."""
+    if MOCK_MODE:
+        return {"status": "paid"}
 
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.get(
-            f"{PORTONE_BASE_URL}/payments/{portone_payment_id}",
-            headers=_portone_headers(),
-        )
-        resp.raise_for_status()
-        return resp.json()
+    async with httpx.AsyncClient(timeout=15) as c:
+        r = await c.get(f"{PORTONE_BASE}/payments/{portone_payment_id}", headers=_po_headers())
+        r.raise_for_status()
+        return r.json()
 
 
-# ---------------------------------------------------------------------------
-# Razorpay helpers
-# ---------------------------------------------------------------------------
+# ─── Razorpay API helpers ─────────────────────────────────────────────────────
 
-def _razorpay_auth():
+def _rz_auth():
     return (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET)
 
 
-async def _razorpay_create_customer(name: str, contact: str,
-                                    email: str, notes: Optional[Dict] = None) -> str:
-    """
-    Create a customer on Razorpay.
-    Returns the Razorpay customer id string.
-    """
-    if not RAZORPAY_KEY_SECRET:
-        logger.warning("[Razorpay] Key secret not set — returning mock customer ID")
-        return f"razorpay_mock_{uuid.uuid4().hex[:12]}"
-
-    payload: Dict[str, Any] = {"name": name, "contact": contact, "email": email}
-    if notes:
-        payload["notes"] = notes
-
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.post(
-            f"{RAZORPAY_BASE_URL}/customers",
-            json=payload,
-            auth=_razorpay_auth(),
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data["id"]
-
-
-async def _razorpay_create_order(amount: float, currency: str,
-                                 receipt: str, notes: Optional[Dict] = None) -> str:
-    """
-    Create a Razorpay order.
-    Returns the Razorpay order_id.
-    """
-    if not RAZORPAY_KEY_SECRET:
-        return f"order_mock_{uuid.uuid4().hex[:12]}"
+async def razorpay_create_order(amount: float, currency: str,
+                                 receipt: str, notes: Optional[Dict] = None) -> Dict[str, Any]:
+    """POST /orders → returns order object."""
+    if MOCK_MODE:
+        oid = f"order_{uuid.uuid4().hex[:10]}"
+        logger.info(f"[Razorpay MOCK] order: {oid}")
+        return {"id": oid, "status": "created"}
 
     payload: Dict[str, Any] = {
-        "amount":   round(amount * 100),   # paise
+        "amount":   round(amount * 100),          # paise
         "currency": currency,
         "receipt":  receipt,
     }
     if notes:
         payload["notes"] = notes
 
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.post(
-            f"{RAZORPAY_BASE_URL}/orders",
-            json=payload,
-            auth=_razorpay_auth(),
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data["id"]
+    async with httpx.AsyncClient(timeout=15) as c:
+        r = await c.post(f"{RAZORPAY_BASE}/orders", json=payload, auth=_rz_auth())
+        r.raise_for_status()
+        return r.json()
 
 
-def _razorpay_verify_signature(order_id: str, payment_id: str, signature: str) -> bool:
-    """
-    Verify Razorpay HMAC-SHA256 signature server-side.
-    Must be called before marking a payment as SUCCESS.
-    """
-    if not RAZORPAY_KEY_SECRET:
-        logger.warning("[Razorpay] Key secret not set — skipping signature verify (mock mode)")
+async def razorpay_get_payment(payment_id: str) -> Dict[str, Any]:
+    """GET /payments/:id — server-to-server status check."""
+    if MOCK_MODE:
+        return {"status": "captured"}
+
+    async with httpx.AsyncClient(timeout=15) as c:
+        r = await c.get(f"{RAZORPAY_BASE}/payments/{payment_id}", auth=_rz_auth())
+        r.raise_for_status()
+        return r.json()
+
+
+def razorpay_verify_signature(order_id: str, payment_id: str, signature: str) -> bool:
+    """HMAC-SHA256 verification. Must pass before marking payment as paid."""
+    if MOCK_MODE:
         return True
-
-    message = f"{order_id}|{payment_id}"
+    if not RAZORPAY_KEY_SECRET:
+        logger.error("[Razorpay] KEY_SECRET not set — cannot verify signature")
+        return False
     expected = hmac.new(
-        RAZORPAY_KEY_SECRET.encode("utf-8"),
-        message.encode("utf-8"),
+        RAZORPAY_KEY_SECRET.encode(),
+        f"{order_id}|{payment_id}".encode(),
         hashlib.sha256,
     ).hexdigest()
     return hmac.compare_digest(expected, signature)
 
 
-async def _razorpay_get_payment(razorpay_payment_id: str) -> Dict:
-    """Fetch a Razorpay payment record (server-to-server verify)."""
-    if not RAZORPAY_KEY_SECRET:
-        return {"status": "captured", "amount": 0}
-
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.get(
-            f"{RAZORPAY_BASE_URL}/payments/{razorpay_payment_id}",
-            auth=_razorpay_auth(),
-        )
-        resp.raise_for_status()
-        return resp.json()
-
-
-# ---------------------------------------------------------------------------
-# Public API — called by koisk_api.py route handlers
-# ---------------------------------------------------------------------------
-
-async def register_customer(req: CustomerRegisterRequest) -> CustomerRegisterResponse:
-    """
-    Register user with BOTH Razorpay and PortOne in parallel.
-    Called automatically on user registration (background task).
-    Customer IDs are stored in _customers and should be persisted to DB.
-    """
-    # Return cached record if already registered
-    if req.userId in _customers:
-        cached = _customers[req.userId]
-        return CustomerRegisterResponse(**cached)
-
-    notes = req.notes or {"koisk_user_id": req.userId}
-    if req.consumerId:
-        notes["consumer_id"] = req.consumerId
-
-    # Call both gateways (independent — one failing doesn't block the other)
-    portone_customer_id  = None
-    razorpay_customer_id = None
-    errors: List[str]    = []
-
-    try:
-        portone_customer_id = await _portone_create_customer(
-            name=req.name, contact=req.contact, email=req.email, notes=notes
-        )
-        logger.info(f"[PortOne] Customer created: {portone_customer_id} for user {req.userId}")
-    except Exception as e:
-        errors.append(f"PortOne: {str(e)}")
-        logger.error(f"[PortOne] Failed to create customer for {req.userId}: {e}")
-
-    try:
-        razorpay_customer_id = await _razorpay_create_customer(
-            name=req.name, contact=req.contact, email=req.email, notes=notes
-        )
-        logger.info(f"[Razorpay] Customer created: {razorpay_customer_id} for user {req.userId}")
-    except Exception as e:
-        errors.append(f"Razorpay: {str(e)}")
-        logger.error(f"[Razorpay] Failed to create customer for {req.userId}: {e}")
-
-    record = {
-        "userId":              req.userId,
-        "portoneCustomerId":   portone_customer_id,
-        "razorpayCustomerId":  razorpay_customer_id,
-        "name":                req.name,
-        "contact":             req.contact,
-        "email":               req.email,
-        "syncedToBackend":     True,
-        "createdAt":           datetime.utcnow().isoformat(),
-    }
-
-    # Persist to in-memory store (swap for DB write in production)
-    _customers[req.userId] = record
-
-    if errors:
-        logger.warning(f"[register_customer] Partial registration for {req.userId}: {errors}")
-
-    return CustomerRegisterResponse(**record)
-
-
-async def initiate_payment(req: InitiatePaymentRequest) -> InitiatePaymentResponse:
-    """
-    Create a gateway order for the given bill.
-    Returns orderId + our internal paymentId to the frontend.
-    """
-    payment_id  = str(uuid.uuid4())
-    gateway_order_id: str
-
-    # Look up customer IDs
-    customer = _customers.get(req.userId, {})
-
-    if req.gateway == "portone":
-        portone_customer_id = customer.get("portoneCustomerId") or f"portone_auto_{req.userId[:8]}"
-        gateway_order_id = await _portone_create_order(
-            payment_id=payment_id,
-            amount=req.amount,
-            currency=req.currency,
-            customer_id=portone_customer_id,
-            dept=req.dept,
-        )
-    elif req.gateway == "razorpay":
-        receipt = f"koisk_{req.dept}_{payment_id[:8]}"
-        gateway_order_id = await _razorpay_create_order(
-            amount=req.amount,
-            currency=req.currency,
-            receipt=receipt,
-            notes={"koisk_payment_id": payment_id, "dept": req.dept, "user_id": req.userId},
-        )
-    else:
-        raise ValueError(f"Unknown gateway: {req.gateway}")
-
-    # Persist pending payment record (swap for DB write in production)
-    _payments[payment_id] = {
-        "id":              payment_id,
-        "userId":          req.userId,
-        "billId":          req.billId,
-        "dept":            req.dept,
-        "amount":          req.amount,
-        "currency":        req.currency,
-        "gateway":         req.gateway,
-        "method":          req.method,
-        "gatewayOrderId":  gateway_order_id,
-        "status":          "PENDING",
-        "createdAt":       datetime.utcnow().isoformat(),
-        "paidAt":          None,
-    }
-
-    logger.info(f"[initiate_payment] {req.gateway} order {gateway_order_id} for payment {payment_id}")
-
-    return InitiatePaymentResponse(
-        orderId=gateway_order_id,
-        paymentId=payment_id,
-        gatewayOrderId=gateway_order_id,
-        gateway=req.gateway,
-        amount=req.amount,
-        currency=req.currency,
-    )
-
-
-async def complete_payment(req: CompletePaymentRequest) -> CompletePaymentResponse:
-    """
-    Verify and finalise a payment after the gateway SDK confirms on the frontend.
-    For Razorpay: validates HMAC signature before accepting.
-    For PortOne:  server-to-server status check.
-    """
-    payment = _payments.get(req.paymentId)
-    if not payment:
-        raise ValueError(f"Payment {req.paymentId} not found")
-
-    # ── Razorpay: verify signature ───────────────────────────────────────────
-    if req.gateway == "razorpay":
-        if not req.razorpaySignature:
-            raise ValueError("Razorpay signature is required to complete payment")
-
-        if not _razorpay_verify_signature(
-            order_id=req.orderId,
-            payment_id=req.gatewayPaymentId,
-            signature=req.razorpaySignature,
-        ):
-            payment["status"] = "FAILED"
-            raise ValueError("Razorpay signature verification failed — payment rejected")
-
-        # Optional: fetch full payment details for amount double-check
-        try:
-            rzp_data = await _razorpay_get_payment(req.gatewayPaymentId)
-            if rzp_data.get("status") != "captured":
-                raise ValueError(f"Razorpay payment not captured (status: {rzp_data.get('status')})")
-        except httpx.HTTPError as e:
-            logger.warning(f"[Razorpay] Could not fetch payment details: {e} — trusting signature")
-
-    # ── PortOne: server-to-server status check ───────────────────────────────
-    elif req.gateway == "portone":
-        try:
-            po_data = await _portone_get_payment_status(req.gatewayPaymentId)
-            portone_status = po_data.get("status", "").lower()
-            if portone_status not in ("paid", "virtual_account_issued", "partial_paid"):
-                raise ValueError(f"PortOne payment not paid (status: {portone_status})")
-        except httpx.HTTPError as e:
-            logger.warning(f"[PortOne] Could not verify payment status: {e} — proceeding with caution")
-
-    # ── Mark SUCCESS and build receipt ───────────────────────────────────────
-    paid_at      = datetime.utcnow().isoformat()
-    reference_no = _generate_reference(payment["dept"])
-
-    payment.update({
-        "status":          "SUCCESS",
-        "gatewayPaymentId": req.gatewayPaymentId,
-        "referenceNo":     reference_no,
-        "paidAt":          paid_at,
-    })
-
-    # Mark the bill as paid
-    bill = _bills.get(payment.get("billId", ""), {})
-    if bill:
-        bill["status"] = "PAID"
-
-    receipt = Receipt(
-        referenceNo=reference_no,
-        amount=payment["amount"],
-        dept=payment["dept"],
-        method=payment["method"],
-        paidAt=paid_at,
-        consumerNo=bill.get("consumerNo"),
-        gatewayPaymentId=req.gatewayPaymentId,
-        gateway=req.gateway,
-    )
-
-    logger.info(f"[complete_payment] Payment {req.paymentId} SUCCESS — ref {reference_no}")
-    return CompletePaymentResponse(success=True, receipt=receipt)
-
-
-async def get_payment_status(payment_id: str) -> PaymentStatusResponse:
-    """Poll payment status — used by frontend for receipt page."""
-    payment = _payments.get(payment_id)
-    if not payment:
-        raise ValueError(f"Payment {payment_id} not found")
-
-    return PaymentStatusResponse(
-        paymentId=payment_id,
-        status=payment["status"],
-        amount=payment.get("amount"),
-        paidAt=payment.get("paidAt"),
-    )
-
-
-async def get_payment_history(user_id: str) -> List[Dict]:
-    """Return all payments for a user (newest first)."""
-    history = [p for p in _payments.values() if p.get("userId") == user_id]
-    history.sort(key=lambda p: p.get("createdAt", ""), reverse=True)
-    return history
-
-
-async def get_bills(user_id: str, dept: str) -> List[BillResponse]:
-    """Return pending bills for a user + department."""
-    results = [
-        b for b in _bills.values()
-        if b.get("userId") == user_id and b.get("dept") == dept and b.get("status") != "PAID"
-    ]
-    return [BillResponse(**b) for b in results]
-
-
-# ---------------------------------------------------------------------------
-# Webhook handlers — called by FastAPI POST /webhooks/* endpoints
-# ---------------------------------------------------------------------------
+# ─── Webhook signature verification ──────────────────────────────────────────
 
 def verify_razorpay_webhook(body: bytes, signature: str) -> bool:
-    """
-    Verify Razorpay webhook HMAC-SHA256 signature.
-    Set PAYMENT_WEBHOOK_SECRET to your Razorpay webhook secret.
-    """
     if not WEBHOOK_SECRET:
-        logger.warning("[webhook] PAYMENT_WEBHOOK_SECRET not set — skipping verification")
+        logger.warning("[webhook] PAYMENT_WEBHOOK_SECRET not set — skipping verify")
         return True
-
-    expected = hmac.new(
-        WEBHOOK_SECRET.encode("utf-8"),
-        body,
-        hashlib.sha256,
-    ).hexdigest()
+    expected = hmac.new(WEBHOOK_SECRET.encode(), body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature)
 
 
 def verify_portone_webhook(body: bytes, signature: str) -> bool:
-    """
-    Verify PortOne webhook signature.
-    PortOne sends X-Portone-Signature header.
-    """
     if not PORTONE_API_SECRET:
         return True
-
-    expected = hmac.new(
-        PORTONE_API_SECRET.encode("utf-8"),
-        body,
-        hashlib.sha256,
-    ).hexdigest()
+    expected = hmac.new(PORTONE_API_SECRET.encode(), body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature)
 
 
-async def handle_razorpay_webhook(event_type: str, payload: Dict) -> Dict:
-    """Process a verified Razorpay webhook event."""
-    if event_type == "payment.captured":
-        payment_entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
-        rz_payment_id  = payment_entity.get("id")
-        rz_order_id    = payment_entity.get("order_id")
+# ─── Service functions — called by koisk_api.py route handlers ────────────────
 
-        # Find our internal payment by gatewayOrderId
-        for p in _payments.values():
-            if p.get("gatewayOrderId") == rz_order_id:
-                if p["status"] != "SUCCESS":
-                    p["status"]          = "SUCCESS"
-                    p["gatewayPaymentId"] = rz_payment_id
-                    p["paidAt"]          = datetime.utcnow().isoformat()
-                    p["referenceNo"]     = _generate_reference(p["dept"])
-                    logger.info(f"[webhook/razorpay] payment.captured → internal {p['id']} SUCCESS")
-                break
+async def svc_register_customer(req: CustomerRegisterRequest,
+                                 db: Session) -> CustomerRegisterResponse:
+    """
+    Idempotent. Checks payment_profiles table first.
+    Creates PortOne customer, stores ID in payment_profiles.
+    Also attempts Razorpay customer (non-blocking if it fails).
+    """
+    from database.models import PaymentProfile, User  # local import avoids circular dep
 
-    elif event_type == "payment.failed":
-        payment_entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
-        rz_order_id    = payment_entity.get("order_id")
-        for p in _payments.values():
-            if p.get("gatewayOrderId") == rz_order_id:
-                p["status"] = "FAILED"
-                logger.info(f"[webhook/razorpay] payment.failed → internal {p['id']} FAILED")
-                break
+    # 1. Already registered? Return existing IDs.
+    existing = db.query(PaymentProfile).filter(PaymentProfile.user_id == req.userId).first()
+    if existing:
+        logger.info(f"[register_customer] existing profile for {req.userId}")
+        return CustomerRegisterResponse(
+            portoneCustomerId=existing.portone_customer_id,
+            razorpayCustomerId=existing.razorpay_customer_id,
+            message="Customer already registered",
+        )
 
-    return {"received": True, "event": event_type}
+    notes = req.notes or {"koisk_user_id": req.userId}
+
+    # 2. Register on PortOne
+    portone_id  = None
+    razorpay_id = None
+
+    try:
+        portone_id = await portone_register_customer(req.name, req.contact, req.email, notes)
+    except Exception as e:
+        logger.error(f"[PortOne] registration failed for {req.userId}: {e}")
+
+    # 3. Razorpay customer (optional — only needed for Razorpay payments)
+    try:
+        if not MOCK_MODE:
+            async with httpx.AsyncClient(timeout=15) as c:
+                r = await c.post(
+                    f"{RAZORPAY_BASE}/customers",
+                    json={"name": req.name, "contact": req.contact, "email": req.email, "notes": notes},
+                    auth=_rz_auth(),
+                )
+                r.raise_for_status()
+                razorpay_id = r.json()["id"]
+                logger.info(f"[Razorpay] customer created: {razorpay_id}")
+        else:
+            razorpay_id = None   # mock: no Razorpay customer needed
+    except Exception as e:
+        logger.error(f"[Razorpay] registration failed for {req.userId}: {e}")
+
+    # 4. Persist to payment_profiles
+    profile = PaymentProfile(
+        id=req.userId,                          # same as user.id
+        user_id=req.userId,
+        portone_customer_id=portone_id,
+        razorpay_customer_id=razorpay_id,
+        name=req.name,
+        contact=req.contact,
+        email=req.email,
+        preferred_gateway="portone",
+    )
+    db.add(profile)
+    db.commit()
+
+    return CustomerRegisterResponse(
+        portoneCustomerId=portone_id,
+        razorpayCustomerId=razorpay_id,
+    )
 
 
-async def handle_portone_webhook(event_type: str, payload: Dict) -> Dict:
-    """Process a verified PortOne webhook event."""
-    if event_type in ("Transaction.Paid", "Transaction.PartiallyPaid"):
-        po_payment_id = payload.get("payment", {}).get("paymentId") or payload.get("paymentId")
+async def svc_initiate_payment(req: InitiatePaymentRequest,
+                                db: Session) -> InitiatePaymentResponse:
+    """
+    Creates a gateway order. Inserts payments row with status='pending'.
+    Returns orderId for the frontend SDK modal.
+    """
+    from database.models import Payment, PaymentProfile  # local import
 
-        for p in _payments.values():
-            if p.get("id") == po_payment_id or p.get("gatewayOrderId") == po_payment_id:
-                if p["status"] != "SUCCESS":
-                    p["status"]          = "SUCCESS"
-                    p["gatewayPaymentId"] = po_payment_id
-                    p["paidAt"]          = datetime.utcnow().isoformat()
-                    p["referenceNo"]     = _generate_reference(p["dept"])
-                    logger.info(f"[webhook/portone] {event_type} → internal {p['id']} SUCCESS")
-                break
+    internal_id = str(uuid.uuid4())
+    gateway_order_id: str
+    gateway_data: Dict[str, Any] = {}
 
-    elif event_type == "Transaction.Failed":
-        po_payment_id = payload.get("payment", {}).get("paymentId") or payload.get("paymentId")
-        for p in _payments.values():
-            if p.get("id") == po_payment_id or p.get("gatewayOrderId") == po_payment_id:
-                p["status"] = "FAILED"
-                break
+    if req.gateway == "portone":
+        # Resolve portone customer ID
+        customer_id = req.customerId
+        if not customer_id:
+            profile = db.query(PaymentProfile).filter(
+                PaymentProfile.user_id == req.userId
+            ).first()
+            customer_id = profile.portone_customer_id if profile else f"auto_{req.userId[:8]}"
 
-    return {"received": True, "event": event_type}
+        result = await portone_create_payment(
+            internal_id=internal_id,
+            amount=req.amount,
+            currency=req.currency,
+            customer_id=customer_id,
+            dept=req.dept,
+        )
+        gateway_order_id = result.get("payment_id", result.get("id", internal_id))
+        gateway_data     = result
+
+    elif req.gateway == "razorpay":
+        result = await razorpay_create_order(
+            amount=req.amount,
+            currency=req.currency,
+            receipt=f"koisk_{req.dept}_{internal_id[:8]}",
+            notes={"koisk_payment_id": internal_id, "dept": req.dept, "user_id": req.userId},
+        )
+        gateway_order_id = result["id"]
+        gateway_data     = result
+
+    else:
+        raise ValueError(f"Unknown gateway: {req.gateway!r}. Use 'portone' or 'razorpay'.")
+
+    # Insert pending payment row
+    payment = Payment(
+        id=internal_id,
+        user_id=req.userId,
+        bill_id=req.billId,
+        department=req.dept,
+        amount=req.amount,
+        currency=req.currency,
+        gateway=req.gateway,
+        gateway_order_id=gateway_order_id,
+        payment_method=req.method,
+        status="pending",
+    )
+    db.add(payment)
+    db.commit()
+
+    logger.info(f"[initiate_payment] {req.gateway} order={gateway_order_id} internal={internal_id}")
+
+    expires_at = None
+    if "expires_at" in gateway_data:
+        expires_at = gateway_data["expires_at"]
+
+    return InitiatePaymentResponse(
+        orderId=gateway_order_id,
+        gateway=req.gateway,
+        gatewayData=gateway_data,
+        expiresAt=expires_at,
+    )
+
+
+async def svc_complete_payment(req: CompletePaymentRequest,
+                                db: Session) -> CompletePaymentResponse:
+    """
+    Server-side payment verification before marking as paid.
+    Razorpay: HMAC signature check.
+    PortOne:  server-to-server status check.
+    Updates payments row, returns receipt.
+    """
+    from database.models import Payment  # local import
+
+    payment = db.query(Payment).filter(Payment.id == req.paymentId).first()
+    if not payment:
+        raise ValueError(f"Payment {req.paymentId} not found")
+
+    if payment.status == "paid":
+        # Idempotent — already completed, return existing receipt
+        return CompletePaymentResponse(
+            receipt=ReceiptData(
+                referenceNo=payment.reference_no or _make_reference(payment.department),
+                amount=payment.amount,
+                dept=payment.department,
+                method=payment.payment_method,
+                paidAt=payment.paid_at.isoformat() if payment.paid_at else _now(),
+                consumerNo=payment.consumer_number,
+            ),
+            message="Payment already completed",
+        )
+
+    # ── Razorpay: verify HMAC signature ──────────────────────────────────────
+    if req.gateway == "razorpay":
+        if not req.razorpaySignature:
+            raise ValueError("razorpaySignature is required for Razorpay payments")
+
+        if not razorpay_verify_signature(req.orderId, req.gatewayPaymentId, req.razorpaySignature):
+            payment.status        = "failed"
+            payment.error_message = "Signature verification failed"
+            db.commit()
+            raise ValueError("Razorpay signature verification failed — payment rejected")
+
+        # Double-check with Razorpay server
+        try:
+            rz = await razorpay_get_payment(req.gatewayPaymentId)
+            if rz.get("status") != "captured":
+                raise ValueError(f"Razorpay payment status is '{rz.get('status')}', expected 'captured'")
+        except httpx.HTTPError as e:
+            logger.warning(f"[Razorpay] Could not fetch payment for double-check: {e} — trusting signature")
+
+    # ── PortOne: server-to-server status check ────────────────────────────────
+    elif req.gateway == "portone":
+        try:
+            po = await portone_get_payment(req.gatewayPaymentId)
+            status = po.get("status", "").lower()
+            if status not in ("paid", "virtual_account_issued", "partial_paid"):
+                raise ValueError(f"PortOne payment status is '{status}', expected 'paid'")
+        except httpx.HTTPError as e:
+            logger.warning(f"[PortOne] Status check failed: {e} — proceeding with caution")
+
+    # ── Mark SUCCESS ──────────────────────────────────────────────────────────
+    paid_at   = datetime.utcnow()
+    reference = _make_reference(payment.department)
+
+    payment.status             = "paid"
+    payment.gateway_payment_id = req.gatewayPaymentId
+    payment.reference_no       = reference
+    payment.paid_at            = paid_at
+    db.commit()
+
+    logger.info(f"[complete_payment] {req.paymentId} → paid  ref={reference}")
+
+    return CompletePaymentResponse(
+        receipt=ReceiptData(
+            referenceNo=reference,
+            amount=payment.amount,
+            dept=payment.department,
+            method=payment.payment_method,
+            paidAt=paid_at.isoformat(),
+            consumerNo=payment.consumer_number,
+        ),
+    )
+
+
+async def svc_get_status(payment_id: str, db: Session) -> PaymentStatusResponse:
+    from database.models import Payment
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        raise ValueError(f"Payment {payment_id} not found")
+    return PaymentStatusResponse(
+        paymentId=payment_id,
+        status=payment.status,
+        amount=payment.amount,
+        paidAt=payment.paid_at.isoformat() if payment.paid_at else None,
+        referenceNo=payment.reference_no,
+    )
+
+
+async def svc_get_history(user_id: str, db: Session) -> List[Dict]:
+    from database.models import Payment
+    rows = (
+        db.query(Payment)
+        .filter(Payment.user_id == user_id)
+        .order_by(Payment.created_at.desc())
+        .all()
+    )
+    return [
+        {
+            "id":                row.id,
+            "userId":            row.user_id,
+            "billId":            row.bill_id,
+            "dept":              row.department,
+            "amount":            row.amount,
+            "currency":          row.currency,
+            "gateway":           row.gateway,
+            "method":            row.payment_method,
+            "status":            row.status,
+            "referenceNo":       row.reference_no,
+            "gatewayPaymentId":  row.gateway_payment_id,
+            "consumerNo":        row.consumer_number,
+            "paidAt":            row.paid_at.isoformat() if row.paid_at else None,
+            "createdAt":         row.created_at.isoformat(),
+        }
+        for row in rows
+    ]
+
+
+# ─── Webhook handlers ─────────────────────────────────────────────────────────
+
+async def handle_razorpay_webhook(event: str, payload: Dict, db: Session) -> Dict:
+    """
+    Handles cases where /complete was never called (browser closed mid-payment).
+    Razorpay sends payment.captured / payment.failed events.
+    """
+    from database.models import Payment
+
+    entity    = payload.get("payload", {}).get("payment", {}).get("entity", {})
+    rz_order  = entity.get("order_id")
+    rz_pay_id = entity.get("id")
+
+    if not rz_order:
+        return {"received": True, "note": "no order_id in payload"}
+
+    payment = db.query(Payment).filter(Payment.gateway_order_id == rz_order).first()
+    if not payment:
+        logger.warning(f"[webhook/razorpay] no payment found for order {rz_order}")
+        return {"received": True}
+
+    if event == "payment.captured" and payment.status != "paid":
+        payment.status             = "paid"
+        payment.gateway_payment_id = rz_pay_id
+        payment.reference_no       = _make_reference(payment.department)
+        payment.paid_at            = datetime.utcnow()
+        db.commit()
+        logger.info(f"[webhook/razorpay] payment.captured → {payment.id} marked paid")
+
+    elif event == "payment.failed" and payment.status == "pending":
+        payment.status        = "failed"
+        payment.error_message = entity.get("error_description", "Payment failed")
+        db.commit()
+        logger.info(f"[webhook/razorpay] payment.failed → {payment.id} marked failed")
+
+    return {"received": True}
+
+
+async def handle_portone_webhook(event: str, payload: Dict, db: Session) -> Dict:
+    """
+    PortOne sends Transaction.Paid / Transaction.Failed events.
+    """
+    from database.models import Payment
+
+    po_id = (payload.get("payment") or {}).get("paymentId") or payload.get("paymentId")
+    if not po_id:
+        return {"received": True, "note": "no paymentId in payload"}
+
+    # PortOne payment_id == our internal payment id (we set it on create)
+    payment = db.query(Payment).filter(
+        (Payment.id == po_id) | (Payment.gateway_order_id == po_id)
+    ).first()
+
+    if not payment:
+        logger.warning(f"[webhook/portone] no payment found for id {po_id}")
+        return {"received": True}
+
+    if event in ("Transaction.Paid", "Transaction.PartiallyPaid") and payment.status != "paid":
+        payment.status             = "paid"
+        payment.gateway_payment_id = po_id
+        payment.reference_no       = _make_reference(payment.department)
+        payment.paid_at            = datetime.utcnow()
+        db.commit()
+        logger.info(f"[webhook/portone] {event} → {payment.id} marked paid")
+
+    elif event == "Transaction.Failed" and payment.status == "pending":
+        payment.status        = "failed"
+        payment.error_message = payload.get("failure", {}).get("message", "Payment failed")
+        db.commit()
+        logger.info(f"[webhook/portone] Transaction.Failed → {payment.id} marked failed")
+
+    return {"received": True}
