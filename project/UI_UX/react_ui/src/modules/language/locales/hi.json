@@ -1,0 +1,109 @@
+{
+  "app_name": "KOISK",
+  "tagline": "स्मार्ट नागरिक उपयोगिता कियोस्क",
+
+  "nav": {
+    "home": "होम",
+    "dashboard": "डैशबोर्ड",
+    "logout": "लॉगआउट",
+    "back": "वापस",
+    "next": "आगे",
+    "cancel": "रद्द करें",
+    "confirm": "पुष्टि करें"
+  },
+
+  "language": {
+    "select_title": "KOISK में आपका स्वागत है",
+    "select_subtitle": "जारी रखने के लिए अपनी पसंदीदा भाषा चुनें",
+    "current": "वर्तमान भाषा",
+    "continue": "जारी रखें",
+    "change": "भाषा बदलें"
+  },
+
+  "auth": {
+    "login_title": "साइन इन करें",
+    "login_subtitle": "अपना पंजीकृत फोन नंबर और पिन दर्ज करें",
+    "register_title": "खाता बनाएं",
+    "register_subtitle": "सभी नागरिक सेवाओं तक पहुंचने के लिए पंजीकरण करें",
+    "phone": "फोन नंबर",
+    "phone_placeholder": "10 अंकों का मोबाइल नंबर दर्ज करें",
+    "pin": "पिन",
+    "pin_placeholder": "4 अंकों का पिन दर्ज करें",
+    "pin_confirm": "पिन की पुष्टि करें",
+    "pin_confirm_placeholder": "अपना पिन दोबारा दर्ज करें",
+    "name": "पूरा नाम",
+    "name_placeholder": "आधार कार्ड के अनुसार",
+    "consumer_id": "उपभोक्ता ID (वैकल्पिक)",
+    "consumer_id_placeholder": "बिजली / पानी / गैस उपभोक्ता संख्या",
+    "login_btn": "साइन इन करें",
+    "register_btn": "खाता बनाएं",
+    "no_account": "खाता नहीं है?",
+    "have_account": "पहले से पंजीकृत हैं?",
+    "register_link": "यहाँ पंजीकरण करें",
+    "login_link": "साइन इन करें",
+    "use_demo": "डेमो खाता उपयोग करें",
+    "demo_hint": "प्रदर्शन के लिए नमूना डेटा के साथ पहले से लोड",
+    "or_divider": "या",
+    "errors": {
+      "phone_required": "फोन नंबर आवश्यक है",
+      "phone_invalid": "वैध 10 अंकों का मोबाइल नंबर दर्ज करें",
+      "pin_required": "पिन आवश्यक है",
+      "pin_length": "पिन ठीक 4 अंकों का होना चाहिए",
+      "pin_mismatch": "पिन मेल नहीं खाते",
+      "name_required": "पूरा नाम आवश्यक है",
+      "invalid_credentials": "फोन नंबर या पिन गलत है",
+      "already_registered": "यह फोन नंबर पहले से पंजीकृत है",
+      "generic": "कुछ गलत हुआ। कृपया पुनः प्रयास करें।"
+    },
+    "success": {
+      "registered": "खाता सफलतापूर्वक बनाया गया!",
+      "logged_in": "वापस स्वागत है!"
+    }
+  },
+
+  "dashboard": {
+    "greeting_morning": "सुप्रभात",
+    "greeting_afternoon": "नमस्ते",
+    "greeting_evening": "शुभ संध्या",
+    "welcome": "स्वागत है",
+    "services": "सेवाएं",
+    "recent_activity": "हाल की गतिविधि",
+    "no_activity": "कोई हाल की गतिविधि नहीं",
+    "quick_pay": "त्वरित भुगतान",
+    "view_all": "सभी देखें"
+  },
+
+  "services": {
+    "electricity": "बिजली",
+    "gas": "गैस",
+    "water": "पानी",
+    "municipal": "नगर निगम",
+    "pay_bill": "बिल भुगतान",
+    "new_connection": "नया कनेक्शन",
+    "complaint": "शिकायत",
+    "track_request": "अनुरोध ट्रैक करें"
+  },
+
+  "status": {
+    "submitted": "जमा किया गया",
+    "processing": "प्रक्रियाधीन",
+    "approved": "स्वीकृत",
+    "completed": "पूर्ण",
+    "rejected": "अस्वीकृत",
+    "pending": "लंबित"
+  },
+
+  "common": {
+    "loading": "लोड हो रहा है...",
+    "error": "त्रुटि",
+    "success": "सफलता",
+    "close": "बंद करें",
+    "save": "सहेजें",
+    "edit": "संपादित करें",
+    "delete": "हटाएं",
+    "amount": "राशि",
+    "date": "तारीख",
+    "reference": "संदर्भ",
+    "rupee": "₹"
+  }
+}

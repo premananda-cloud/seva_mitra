@@ -1,0 +1,36 @@
+📁 KOISK_ROOT/ (Your Project Root)
+│
+├── 📁 react_ui/                      ← FRONTEND (Your working app)
+│   ├── src/
+│   │   ├── modules/
+│   │   │   ├── auth/                 ← Login/Register UI
+│   │   │   ├── language/              ← i18n + 7 languages ✓
+│   │   │   ├── localdb/               ← IndexedDB storage ✓
+│   │   │   └── orchestrator/           ← (to be built later)
+│   │   └── components/
+│   └── package.json
+│
+├── 📁 api/                            ← BACKEND ENVELOPE (Your design)
+│   ├── koisk_api.py                    ← Main FastAPI app
+│   ├── requirements.txt
+│   └── 📁 routes/                       ← API endpoints
+│       ├── auth_routes.py
+│       ├── payment_routes.py
+│       └── service_routes.py
+│
+├── 📁 department/                      ← DEPARTMENT SERVICES
+│   ├── 📁 electricity/
+│   ├── 📁 gas/
+│   └── 📁 water/
+│
+├── 📁 security/                        ← AUTHENTICATION LAYER
+│   ├── auth.py                          ← JWT, OAuth2 logic
+│   └── models.py
+│
+├── 📁 payment/                          ← PAYMENT PROCESSING
+│   └── gateway.py
+│
+└── 📁 database/                         ← GLOBAL DATABASE
+    ├── init.sql
+    ├── models.py
+    └── 📁 migrations/

@@ -1,0 +1,26 @@
+{
+  "app_name": "KOISK",
+  "tagline": "स्मार्ट नागरी उपयुक्तता कियोस्क",
+  "nav": { "home": "मुखपृष्ठ", "dashboard": "डॅशबोर्ड", "logout": "लॉगआउट", "back": "मागे", "next": "पुढे", "cancel": "रद्द करा", "confirm": "पुष्टी करा" },
+  "language": { "select_title": "KOISK मध्ये आपले स्वागत आहे", "select_subtitle": "पुढे जाण्यासाठी आपली पसंतीची भाषा निवडा", "current": "सध्याची भाषा", "continue": "पुढे जा", "change": "भाषा बदला" },
+  "auth": {
+    "login_title": "साइन इन", "login_subtitle": "नोंदणीकृत फोन नंबर आणि PIN टाका",
+    "register_title": "खाते तयार करा", "register_subtitle": "सर्व नागरी सेवांसाठी नोंदणी करा",
+    "phone": "फोन नंबर", "phone_placeholder": "10 अंकी मोबाईल नंबर टाका",
+    "pin": "PIN", "pin_placeholder": "4 अंकी PIN टाका",
+    "pin_confirm": "PIN पुष्टी करा", "pin_confirm_placeholder": "PIN पुन्हा टाका",
+    "name": "पूर्ण नाव", "name_placeholder": "आधार कार्डनुसार",
+    "consumer_id": "ग्राहक ID (पर्यायी)", "consumer_id_placeholder": "वीज / पाणी / गॅस ग्राहक क्रमांक",
+    "login_btn": "साइन इन", "register_btn": "खाते तयार करा",
+    "no_account": "खाते नाही?", "have_account": "आधीच नोंदणी केली?",
+    "register_link": "येथे नोंदणी करा", "login_link": "साइन इन",
+    "use_demo": "डेमो खाते वापरा", "demo_hint": "प्रात्यक्षिकासाठी नमुना डेटासह प्रीलोड",
+    "or_divider": "किंवा",
+    "errors": { "phone_required": "फोन नंबर आवश्यक आहे", "phone_invalid": "वैध 10 अंकी मोबाईल नंबर टाका", "pin_required": "PIN आवश्यक आहे", "pin_length": "PIN नक्की 4 अंकी असणे आवश्यक", "pin_mismatch": "PIN जुळत नाहीत", "name_required": "पूर्ण नाव आवश्यक", "invalid_credentials": "फोन नंबर किंवा PIN चुकीचा आहे", "already_registered": "हा फोन नंबर आधीच नोंदणीकृत आहे", "generic": "काहीतरी चूक झाली. पुन्हा प्रयत्न करा." },
+    "success": { "registered": "खाते यशस्वीरित्या तयार झाले!", "logged_in": "पुन्हा स्वागत!" }
+  },
+  "dashboard": { "greeting_morning": "शुभ सकाळ", "greeting_afternoon": "शुभ दुपार", "greeting_evening": "शुभ संध्याकाळ", "welcome": "स्वागत आहे", "services": "सेवा", "recent_activity": "अलीकडील क्रियाकलाप", "no_activity": "कोणतीही अलीकडील क्रियाकलाप नाही", "quick_pay": "जलद देयक", "view_all": "सर्व पहा" },
+  "services": { "electricity": "वीज", "gas": "गॅस", "water": "पाणी", "municipal": "महानगरपालिका", "pay_bill": "बिल भरा", "new_connection": "नवीन कनेक्शन", "complaint": "तक्रार", "track_request": "विनंती ट्रॅक करा" },
+  "status": { "submitted": "सादर केले", "processing": "प्रक्रिया सुरू", "approved": "मंजूर", "completed": "पूर्ण", "rejected": "नाकारले", "pending": "प्रलंबित" },
+  "common": { "loading": "लोड होत आहे...", "error": "त्रुटी", "success": "यश", "close": "बंद करा", "save": "जतन करा", "edit": "संपादित करा", "delete": "हटवा", "amount": "रक्कम", "date": "तारीख", "reference": "संदर्भ", "rupee": "₹" }
+}

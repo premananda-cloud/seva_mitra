@@ -1,0 +1,6 @@
+Field	Requirement	Details
+name	Mandatory	Customer's full name (5-50 characters, letters and spaces only) 
+contact	Mandatory	Phone number with country code (e.g., +919876543210) 
+email	Mandatory	Valid email address 
+gstin	Optional	GST number if applicable 
+notes	Optional	Any custom key-value pairs you want to store 
