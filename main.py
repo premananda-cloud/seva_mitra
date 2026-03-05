@@ -36,7 +36,7 @@ from src.department.database.models import (
     ServiceRequest as ServiceRequestModel, User, WaterConsumer,
     KioskSession, KioskConfig,
 )
-from ..payment.payment_handler import (
+from src.payment.payment_handler import (
     CompletePaymentRequest, CustomerRegisterRequest, ErrorResponse,
     InitiatePaymentRequest, handle_portone_webhook, handle_razorpay_webhook,
     svc_get_history, svc_get_status, svc_register_customer,
@@ -1052,7 +1052,7 @@ def _get_dept_razorpay_keys(db: Session, department: str) -> tuple[str, str]:
     Return (key_id, key_secret) for the given department.
     Falls back to env vars if no DB config row exists (useful in dev).
     """
-    from ..payment.payment_handler import RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
+    from src.payment.payment_handler import RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
     cfg = db.query(KioskConfig).filter(KioskConfig.department == department).first()
     if cfg and cfg.razorpay_key_id and cfg.razorpay_key_secret:
         return cfg.razorpay_key_id, cfg.razorpay_key_secret
