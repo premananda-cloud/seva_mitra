@@ -42,8 +42,8 @@ async def initiate_payment(req: InitiatePaymentRequest, db: Session = Depends(ge
         bill_id=req.billId, department=req.dept,
         amount=req.amount, currency=req.currency,
         method=req.method, gateway=req.gateway, db=db,
-        consumer_number=req.consumerNumber,
-        billing_period=req.billingPeriod,
+        consumer_number=req.consumerNumber or "",
+        billing_period=req.billingPeriod or "",
     )
 
 
@@ -107,7 +107,13 @@ async def get_user_requests(
     department: Optional[str] = None,
     db:         Session = Depends(get_db),
 ):
-    q = db.query(ServiceRequestModel).filter(ServiceRequestModel.user_id == user_id)
+    # service_requests.user_id is an Integer FK (NULL for guest/kiosk requests).
+    # Department routers pass user_id as a string in the payload dict.
+    # We match on payload->'user_id' so all kiosk requests are findable by their string id.
+    from sqlalchemy import cast, String
+    q = db.query(ServiceRequestModel).filter(
+        ServiceRequestModel.payload["user_id"].as_string() == user_id
+    )
     if department:
         q = q.filter(ServiceRequestModel.department == department)
     rows = q.order_by(ServiceRequestModel.created_at.desc()).all()

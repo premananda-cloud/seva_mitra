@@ -80,14 +80,16 @@ class CustomerRegisterResponse(BaseModel):
 
 
 class InitiatePaymentRequest(BaseModel):
-    userId:     str
-    billId:     str
-    dept:       str                       # electricity | gas | water
-    amount:     float                     # rupees (not paise)
-    currency:   str = "INR"
-    gateway:    str                       # portone | razorpay
-    method:     str                       # upi | card | netbanking
-    customerId: Optional[str] = None      # portone_customer_id
+    userId:         str
+    billId:         str
+    dept:           str                       # electricity | gas | water
+    amount:         float                     # rupees (not paise)
+    currency:       str = "INR"
+    gateway:        str = "mock"              # portone | razorpay | mock
+    method:         str = "upi"              # upi | card | netbanking
+    customerId:     Optional[str] = None      # portone_customer_id
+    consumerNumber: Optional[str] = None      # meter / consumer number
+    billingPeriod:  Optional[str] = None      # YYYY-MM
 
 
 class InitiatePaymentResponse(BaseModel):
@@ -344,7 +346,7 @@ async def svc_register_customer(req: CustomerRegisterRequest,
     Creates PortOne customer, stores ID in payment_profiles.
     Also attempts Razorpay customer (non-blocking if it fails).
     """
-    from database.models import PaymentProfile, User  # local import avoids circular dep
+    from src.database.models import PaymentProfile, User  # local import avoids circular dep
 
     # 1. Already registered? Return existing IDs.
     existing = db.query(PaymentProfile).filter(PaymentProfile.user_id == req.userId).first()
@@ -410,7 +412,7 @@ async def svc_initiate_payment(req: InitiatePaymentRequest,
     Creates a gateway order. Inserts payments row with status='pending'.
     Returns orderId for the frontend SDK modal.
     """
-    from database.models import Payment, PaymentProfile  # local import
+    from src.database.models import Payment, PaymentProfile  # local import
 
     internal_id = str(uuid.uuid4())
     gateway_order_id: str
@@ -486,7 +488,7 @@ async def svc_complete_payment(req: CompletePaymentRequest,
     PortOne:  server-to-server status check.
     Updates payments row, returns receipt.
     """
-    from database.models import Payment  # local import
+    from src.database.models import Payment  # local import
 
     payment = db.query(Payment).filter(Payment.id == req.paymentId).first()
     if not payment:
@@ -560,7 +562,7 @@ async def svc_complete_payment(req: CompletePaymentRequest,
 
 
 async def svc_get_status(payment_id: str, db: Session) -> PaymentStatusResponse:
-    from database.models import Payment
+    from src.database.models import Payment
     payment = db.query(Payment).filter(Payment.id == payment_id).first()
     if not payment:
         raise ValueError(f"Payment {payment_id} not found")
@@ -574,7 +576,7 @@ async def svc_get_status(payment_id: str, db: Session) -> PaymentStatusResponse:
 
 
 async def svc_get_history(user_id: str, db: Session) -> List[Dict]:
-    from database.models import Payment
+    from src.database.models import Payment
     rows = (
         db.query(Payment)
         .filter(Payment.user_id == user_id)
@@ -609,7 +611,7 @@ async def handle_razorpay_webhook(event: str, payload: Dict, db: Session) -> Dic
     Handles cases where /complete was never called (browser closed mid-payment).
     Razorpay sends payment.captured / payment.failed events.
     """
-    from database.models import Payment
+    from src.database.models import Payment
 
     entity    = payload.get("payload", {}).get("payment", {}).get("entity", {})
     rz_order  = entity.get("order_id")
@@ -644,7 +646,7 @@ async def handle_portone_webhook(event: str, payload: Dict, db: Session) -> Dict
     """
     PortOne sends Transaction.Paid / Transaction.Failed events.
     """
-    from database.models import Payment
+    from src.database.models import Payment
 
     po_id = (payload.get("payment") or {}).get("paymentId") or payload.get("paymentId")
     if not po_id:
