@@ -1,0 +1,109 @@
+{
+  "app_name": "KOISK",
+  "tagline": "ꯆꯥꯡꯊꯣꯡ ꯅꯥꯒꯔꯤꯛ ꯌꯨꯇꯤꯂꯤꯇꯤ ꯀꯤꯑꯣꯁꯛ",
+
+  "nav": {
+    "home": "ꯊꯧꯔꯛ",
+    "dashboard": "ꯗꯦꯁꯕꯣꯔꯗ",
+    "logout": "ꯂꯣꯒꯀꯧꯠ",
+    "back": "ꯃꯥꯡꯕꯥꯛ",
+    "next": "ꯑꯔꯣꯏꯕ",
+    "cancel": "ꯁꯤꯖꯤꯟꯅꯕ",
+    "confirm": "ꯁꯥꯒꯠꯂꯕ"
+  },
+
+  "language": {
+    "select_title": "KOISK-ꯇꯥ ꯄꯥꯎꯈꯩꯕꯤꯌꯨ",
+    "select_subtitle": "ꯁꯤꯖꯤꯟꯅꯃꯤꯟ ꯑꯩꯈꯣꯌꯒꯤ ꯂꯣꯟ ꯁꯦꯜꯕꯤꯌꯨ",
+    "current": "ꯑꯃꯨꯛꯄ ꯂꯣꯟ",
+    "continue": "ꯁꯤꯖꯤꯟꯅꯕ",
+    "change": "ꯂꯣꯟ ꯁꯥꯒꯠꯂꯕ"
+  },
+
+  "auth": {
+    "login_title": "ꯁꯥꯏꯟ ꯏꯟ",
+    "login_subtitle": "ꯑꯩꯈꯣꯌꯒꯤ ꯔꯦꯖꯤꯁ꯭ꯇꯔ ꯑꯃꯨꯛꯄ ꯐꯣꯟ ꯅꯝꯕꯔ ꯑꯃꯁꯨꯡ PIN ꯄꯨꯠꯁꯤꯌꯨ",
+    "register_title": "ꯑꯦꯛꯀꯥꯎꯟꯇ ꯇꯧꯕ",
+    "register_subtitle": "ꯅꯥꯒꯔꯤꯛ ꯁꯔꯚꯤꯁ ꯊꯧꯔꯛꯂꯛꯄꯒꯤ ꯔꯦꯖꯤꯁ꯭ꯇꯔ ꯇꯧꯕꯤꯌꯨ",
+    "phone": "ꯐꯣꯟ ꯅꯝꯕꯔ",
+    "phone_placeholder": "10 ꯁꯝꯕ ꯃꯣꯕꯥꯏꯜ ꯅꯝꯕꯔ ꯄꯨꯠꯁꯤꯌꯨ",
+    "pin": "PIN",
+    "pin_placeholder": "4 ꯁꯝꯕ PIN ꯄꯨꯠꯁꯤꯌꯨ",
+    "pin_confirm": "PIN ꯁꯥꯒꯠꯂꯕ",
+    "pin_confirm_placeholder": "PIN ꯑꯃꯨꯛ ꯃꯔꯨꯛ ꯄꯨꯠꯁꯤꯌꯨ",
+    "name": "ꯃꯃꯤꯡ ꯃꯔꯨ",
+    "name_placeholder": "ꯑꯥꯗꯥꯔ ꯀꯥꯔꯗꯗ ꯂꯩꯔꯤꯕꯁꯤꯗꯒꯤ",
+    "consumer_id": "ꯀꯟꯁꯨꯃꯔ ID (ꯅꯠꯇ꯭ꯔꯒ)",
+    "consumer_id_placeholder": "ꯏꯂꯦꯛꯇ꯭ꯔꯤꯁꯤꯇꯤ / ꯑꯃꯨꯛꯄꯥ / ꯒꯦꯁ ꯅꯝꯕꯔ",
+    "login_btn": "ꯁꯥꯏꯟ ꯏꯟ",
+    "register_btn": "ꯑꯦꯛꯀꯥꯎꯟꯇ ꯇꯧꯕ",
+    "no_account": "ꯑꯦꯛꯀꯥꯎꯟꯇ ꯂꯩꯇꯦ?",
+    "have_account": "ꯑꯃꯨꯛꯀꯅꯥ ꯔꯦꯖꯤꯁ꯭ꯇꯔ ꯇꯧꯈꯤ?",
+    "register_link": "ꯑꯇꯩꯗꯥ ꯔꯦꯖꯤꯁ꯭ꯇꯔ ꯇꯧꯕꯤꯌꯨ",
+    "login_link": "ꯁꯥꯏꯟ ꯏꯟ ꯇꯧꯕꯤꯌꯨ",
+    "use_demo": "ꯗꯦꯃꯣ ꯑꯦꯛꯀꯥꯎꯟꯇ ꯁꯦꯡꯕ",
+    "demo_hint": "ꯗꯦꯃꯣꯒꯤ ꯅꯨꯡꯉꯥꯏꯕ ꯇꯦꯢꯕꯒꯥ ꯃꯑꯣꯡ ꯂꯧꯈꯤ",
+    "or_divider": "ꯅꯠꯇ꯭ꯔꯒ",
+    "errors": {
+      "phone_required": "ꯐꯣꯟ ꯅꯝꯕꯔ ꯌꯥꯑꯣꯏꯔꯤ",
+      "phone_invalid": "ꯐꯣꯟ ꯅꯝꯕꯔ 10 ꯁꯝꯕ ꯑꯣꯏꯅꯕꯤꯌꯨ",
+      "pin_required": "PIN ꯌꯥꯑꯣꯏꯔꯤ",
+      "pin_length": "PIN ꯑꯃꯨꯛꯅꯥ ꯃꯊꯧ ꯴ ꯁꯝꯕ ꯑꯣꯏꯅꯕꯤꯌꯨ",
+      "pin_mismatch": "PIN ꯃꯇꯦꯡ ꯂꯧꯇꯦ",
+      "name_required": "ꯃꯃꯤꯡ ꯃꯔꯨ ꯌꯥꯑꯣꯏꯔꯤ",
+      "invalid_credentials": "ꯐꯣꯟ ꯅꯝꯕꯔ ꯅꯠꯇ꯭ꯔꯒ PIN ꯁꯦꯃꯒꯠꯇꯦ",
+      "already_registered": "ꯐꯣꯟ ꯅꯝꯕꯔ ꯑꯃꯨꯛꯅꯥ ꯑꯃꯨꯛꯀꯅꯥ ꯔꯦꯖꯤꯁ꯭ꯇꯔ ꯇꯧꯈꯤ",
+      "generic": "ꯑꯃꯨꯛ ꯑꯦꯔꯔꯔ ꯂꯩ। ꯃꯔꯨꯛꯇꯥ ꯍꯥꯌꯔꯤꯕꯤꯌꯨ।"
+    },
+    "success": {
+      "registered": "ꯑꯦꯛꯀꯥꯎꯟꯇ ꯈꯉꯗꯣꯛꯂꯦ!",
+      "logged_in": "ꯃꯔꯨꯛ ꯄꯥꯎꯈꯩꯕꯤꯌꯨ!"
+    }
+  },
+
+  "dashboard": {
+    "greeting_morning": "ꯁꯤꯖꯤꯟꯅꯕ ꯆꯠꯊꯣꯛꯄ",
+    "greeting_afternoon": "ꯅꯨꯡꯉꯥꯏꯕ ꯏꯆꯤꯜ",
+    "greeting_evening": "ꯈꯨꯝꯃꯤꯡ ꯅꯨꯡꯉꯥꯏꯕ",
+    "welcome": "ꯄꯥꯎꯈꯩꯕꯤꯌꯨ",
+    "services": "ꯁꯔꯚꯤꯁ",
+    "recent_activity": "ꯑꯃꯨꯛꯄ ꯑꯦꯛꯇꯤꯚꯤꯇꯤ",
+    "no_activity": "ꯑꯦꯛꯇꯤꯚꯤꯇꯤ ꯂꯩꯇꯦ",
+    "quick_pay": "ꯆꯠꯊꯣꯛꯄ ꯄꯦꯃꯦꯟꯠ",
+    "view_all": "ꯊꯕꯛ ꯑꯤꯡꯅꯕ"
+  },
+
+  "services": {
+    "electricity": "ꯏꯂꯦꯛꯇ꯭ꯔꯤꯁꯤꯇꯤ",
+    "gas": "ꯒꯦꯁ",
+    "water": "ꯑꯃꯨ",
+    "municipal": "ꯃꯌꯨꯡꯗꯥ ꯁꯔꯛꯥꯔ",
+    "pay_bill": "ꯕꯤꯜ ꯄꯦꯃꯦꯟꯠ",
+    "new_connection": "ꯅꯨꯡꯉꯥꯏꯕ ꯀꯅꯦꯛꯁꯟ",
+    "complaint": "ꯀꯝꯄ꯭ꯂꯦꯟꯇ",
+    "track_request": "ꯔꯤꯀ꯭ꯋꯦꯁ꯭ꯇ ꯇ꯭ꯔꯦꯛ ꯇꯧꯕ"
+  },
+
+  "status": {
+    "submitted": "ꯄꯨꯠꯂꯦ",
+    "processing": "ꯁꯤꯖꯤꯟꯅꯔꯤ",
+    "approved": "ꯁꯥꯒꯠꯂꯦ",
+    "completed": "ꯊꯣꯛꯄꯤ",
+    "rejected": "ꯁꯤꯖꯤꯟꯅꯕ ꯌꯥꯗꯦ",
+    "pending": "ꯄꯦꯟꯗꯤꯡ"
+  },
+
+  "common": {
+    "loading": "ꯂꯣꯗ ꯇꯧꯔꯤ...",
+    "error": "ꯑꯦꯔꯔꯔ",
+    "success": "ꯈꯉꯗꯣꯛꯂꯦ",
+    "close": "ꯁꯦꯡꯕ",
+    "save": "ꯁꯦꯕ ꯇꯧꯕ",
+    "edit": "ꯁꯥꯒꯠꯂꯕ",
+    "delete": "ꯁꯔꯨꯛꯂꯕ",
+    "amount": "ꯄꯥꯎꯊꯣꯛꯄ",
+    "date": "ꯀꯨꯟꯒꯥꯏ",
+    "reference": "ꯔꯦꯐꯔꯦꯟꯁ",
+    "rupee": "₹"
+  }
+}

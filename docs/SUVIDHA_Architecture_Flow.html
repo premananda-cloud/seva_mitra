@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SUVIDHA 2026 — KOISK UI Architecture & Flow</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --navy:   #0F2044;
+    --blue:   #1A3A6B;
+    --teal:   #0B6E6E;
+    --accent: #00C9A7;
+    --amber:  #F59E0B;
+    --danger: #EF4444;
+    --green:  #10B981;
+    --surf:   #F0F4FA;
+    --muted:  #8896B3;
+    --white:  #FFFFFF;
+    --gray:   #E8EDF5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--surf); color: var(--navy); }
+
+  /* ── Layout ── */
+  .page { max-width: 1200px; margin: 0 auto; padding: 48px 32px 80px; }
+
+  /* ── Header ── */
+  .doc-header { background: var(--navy); color: white; padding: 40px 48px; border-radius: 20px; margin-bottom: 48px; display: flex; justify-content: space-between; align-items: center; }
+  .doc-header h1 { font-family: 'Sora', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.5px; }
+  .doc-header p  { color: var(--accent); font-size: 14px; margin-top: 4px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .doc-header .badge { background: var(--accent); color: var(--navy); padding: 8px 18px; border-radius: 8px; font-family: 'Sora', sans-serif; font-weight: 800; font-size: 13px; white-space: nowrap; }
+
+  /* ── Section ── */
+  .section { margin-bottom: 56px; }
+  .section-title { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 800; color: var(--navy); margin-bottom: 4px; padding-bottom: 10px; border-bottom: 3px solid var(--accent); display: inline-block; }
+  .section-sub   { color: var(--muted); font-size: 13px; margin-bottom: 24px; margin-top: 4px; }
+
+  /* ── Arch diagram ── */
+  .arch { display: grid; grid-template-columns: 1fr 60px 1fr 60px 1fr; align-items: start; gap: 0; }
+  .arch-layer { background: white; border-radius: 14px; border: 1.5px solid var(--gray); padding: 20px; box-shadow: 0 2px 12px rgba(15,32,68,.06); }
+  .arch-layer h3 { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 12px; }
+  .arch-layer.front { border-top: 4px solid var(--teal); }
+  .arch-layer.orch  { border-top: 4px solid var(--amber); }
+  .arch-layer.back  { border-top: 4px solid var(--navy); }
+  .arch-arrow { display: flex; align-items: center; justify-content: center; padding-top: 60px; }
+  .arch-arrow span { font-size: 28px; color: var(--muted); }
+
+  /* ── Chips ── */
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surf); border: 1px solid var(--gray); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-family: 'DM Mono', monospace; color: var(--navy); margin: 3px; white-space: nowrap; }
+  .chip.teal   { background: #E6FAF5; border-color: var(--accent); color: var(--teal); }
+  .chip.navy   { background: #E8EDF5; border-color: var(--blue);   color: var(--navy); }
+  .chip.amber  { background: #FEF3C7; border-color: var(--amber);  color: #92400E; }
+  .chip.green  { background: #D1FAE5; border-color: var(--green);  color: #065F46; }
+  .chip.danger { background: #FEE2E2; border-color: var(--danger); color: #991B1B; }
+
+  /* ── Flow diagram ── */
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .flow-row { display: flex; align-items: stretch; gap: 12px; }
+  .flow-step { flex: 1; background: white; border-radius: 12px; border: 1.5px solid var(--gray); padding: 16px 18px; box-shadow: 0 2px 8px rgba(15,32,68,.05); }
+  .flow-step .num { width: 28px; height: 28px; border-radius: 50%; background: var(--teal); color: white; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+  .flow-step h4 { font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .flow-step p  { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .flow-step .endpoint { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--teal); background: #E6FAF5; padding: 3px 7px; border-radius: 5px; margin-top: 6px; display: inline-block; }
+  .flow-connector { width: 12px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 20px; }
+  .flow-down { text-align: center; padding: 6px 0; color: var(--muted); font-size: 20px; }
+
+  /* ── Service matrix ── */
+  .matrix { width: 100%; border-collapse: collapse; border-radius: 12px; overflow: hidden; font-size: 13px; }
+  .matrix th { background: var(--navy); color: white; padding: 12px 16px; font-family: 'Sora', sans-serif; font-weight: 700; text-align: left; }
+  .matrix th:not(:first-child) { text-align: center; }
+  .matrix td { padding: 10px 16px; border-bottom: 1px solid var(--gray); }
+  .matrix td:not(:first-child) { text-align: center; }
+  .matrix tr:nth-child(even) td { background: var(--surf); }
+  .matrix tr:hover td { background: #EEF9F6; }
+  .tick  { color: var(--green);  font-size: 16px; font-weight: 700; }
+  .cross { color: var(--muted);  font-size: 14px; }
+  .note  { color: var(--amber);  font-size: 11px; font-weight: 600; }
+
+  /* ── Auth diagram ── */
+  .auth-flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--gray); border-radius: 12px; overflow: hidden; }
+  .auth-col  { background: white; padding: 16px; }
+  .auth-col h4 { font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid var(--gray); }
+  .auth-item { background: var(--surf); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 12px; }
+  .auth-item strong { display: block; color: var(--navy); font-family: 'Sora', sans-serif; font-weight: 700; margin-bottom: 2px; }
+  .auth-item span   { color: var(--muted); font-size: 11px; }
+
+  /* ── DB table ── */
+  .db-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .db-card  { background: white; border-radius: 12px; border: 1.5px solid var(--gray); padding: 16px; }
+  .db-card h4 { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 8px; border-bottom: 2px solid var(--accent); padding-bottom: 6px; }
+  .db-card ul { list-style: none; font-size: 11px; color: var(--muted); line-height: 1.8; }
+  .db-card ul li::before { content: '▸ '; color: var(--accent); }
+  .db-card ul li.pk::before { content: '🔑 '; }
+  .db-card ul li.fk::before { content: '🔗 '; }
+
+  /* ── Lang grid ── */
+  .lang-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .lang-card  { background: white; border-radius: 12px; border: 1.5px solid var(--gray); padding: 16px; text-align: center; }
+  .lang-card .flag { font-size: 28px; margin-bottom: 6px; }
+  .lang-card .native { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 2px; }
+  .lang-card .en     { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .lang-card .script { font-size: 10px; background: #E6FAF5; color: var(--teal); border-radius: 4px; padding: 2px 6px; display: inline-block; font-family: 'DM Mono', monospace; }
+  .lang-card.unique  { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,201,167,.1); }
+
+  /* ── Payment ── */
+  .pay-flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+  .pay-step { background: white; border-radius: 10px; border: 1.5px solid var(--gray); padding: 14px 16px; font-size: 12px; min-width: 120px; text-align: center; }
+  .pay-step strong { display: block; font-family: 'Sora', sans-serif; font-weight: 700; color: var(--navy); font-size: 13px; margin-bottom: 2px; }
+  .pay-step span { color: var(--muted); font-size: 11px; }
+  .pay-arrow { padding: 0 8px; color: var(--muted); font-size: 18px; }
+  .pay-step.mock  { border-color: var(--green);  background: #D1FAE5; }
+  .pay-step.portone { border-color: var(--teal); background: #E6FAF5; }
+  .pay-step.razor { border-color: var(--amber); background: #FEF3C7; }
+  .pay-step.offline { border-color: var(--danger); background: #FEE2E2; }
+
+  /* ── Gaps / roadmap ── */
+  .gap-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .gap-table th { background: var(--navy); color: white; padding: 10px 14px; font-family: 'Sora', sans-serif; font-weight: 700; text-align: left; }
+  .gap-table td { padding: 10px 14px; border-bottom: 1px solid var(--gray); vertical-align: top; }
+  .gap-table tr:nth-child(even) td { background: var(--surf); }
+  .prio { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; font-family: 'DM Mono', monospace; white-space: nowrap; }
+  .prio.red    { background: #FEE2E2; color: #991B1B; }
+  .prio.amber  { background: #FEF3C7; color: #92400E; }
+  .prio.green  { background: #D1FAE5; color: #065F46; }
+  .prio.blue   { background: #DBEAFE; color: #1E40AF; }
+
+  .footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 60px; padding-top: 24px; border-top: 2px solid var(--gray); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="doc-header">
+    <div>
+      <h1>SUVIDHA 2026 — KOISK UI</h1>
+      <p>Architecture, Flow & Reference Diagram · C-DAC CINE · March 2026</p>
+    </div>
+    <div class="badge">PPT Reference</div>
+  </div>
+
+  <!-- 1. SYSTEM ARCHITECTURE -->
+  <div class="section">
+    <div class="section-title">1 · System Architecture</div>
+    <p class="section-sub">Three-tier with Orchestrator bridge for transparent offline/online switching</p>
+
+    <div class="arch">
+      <!-- Frontend -->
+      <div class="arch-layer front">
+        <h3>Frontend (React / Vite)</h3>
+        <div style="margin-bottom:10px">
+          <span class="chip teal">React 18</span>
+          <span class="chip teal">Vite</span>
+          <span class="chip teal">Zustand</span>
+          <span class="chip teal">i18next</span>
+          <span class="chip teal">Tailwind</span>
+          <span class="chip teal">Axios</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;">
+          <b style="color:var(--navy)">Modules:</b><br>
+          auth/ — LoginPage, RegisterPage, authStore<br>
+          language/ — LanguageSelect + 8 locale JSON<br>
+          localdb/ — IndexedDB v3 (users, sessions, payments, bills, syncQueue)<br>
+          orchestrator/ — online/offline routing + mock<br>
+          payment/ — paymentService, offlineQueue, gatewayAdapters<br>
+          <br>
+          <b style="color:var(--navy)">Components:</b><br>
+          kiosk/ — Dashboard, Keyboard, KOISK_demo<br>
+          payment/ — PaymentFlow, ReceiptScreen, OfflineBanner
+        </div>
+      </div>
+
+      <div class="arch-arrow"><span>⇄</span></div>
+
+      <!-- Orchestrator -->
+      <div class="arch-layer orch">
+        <h3>Orchestrator Layer</h3>
+        <div style="margin-bottom:10px">
+          <span class="chip amber">orchestrator.js</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;">
+          <b style="color:var(--navy)">Online mode:</b><br>
+          → HTTP via Axios<br>
+          → JWT Bearer auto-attached<br>
+          → Real FastAPI backend<br>
+          <br>
+          <b style="color:var(--navy)">Offline mode:</b><br>
+          → mockPaymentService.js<br>
+          → localDB (IndexedDB)<br>
+          → offlineQueue (sync on reconnect)<br>
+          <br>
+          <b style="color:var(--navy)">Connectivity check:</b><br>
+          → GET /health polling
+        </div>
+      </div>
+
+      <div class="arch-arrow"><span>⇄</span></div>
+
+      <!-- Backend -->
+      <div class="arch-layer back">
+        <h3>Backend (FastAPI)</h3>
+        <div style="margin-bottom:10px">
+          <span class="chip navy">Python 3.11</span>
+          <span class="chip navy">FastAPI</span>
+          <span class="chip navy">SQLAlchemy 2.0</span>
+          <span class="chip navy">python-jose</span>
+          <span class="chip navy">passlib/bcrypt</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;">
+          <b style="color:white">Routers:</b><br>
+          src/api/admin/ — JWT auth, request mgmt, kiosk config<br>
+          src/api/electricity/ — 7 endpoints<br>
+          src/api/water/ — 7 endpoints<br>
+          src/api/municipal/ — 8 endpoints<br>
+          src/api/payments/ — initiate, complete, webhook<br>
+          src/api/kiosk/ — catalogue, OTP sessions<br>
+          <br>
+          <b style="color:white">Database:</b><br>
+          SQLite (dev) / PostgreSQL (prod)<br>
+          11 ORM models, single Base
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. USER FLOW -->
+  <div class="section">
+    <div class="section-title">2 · Citizen User Flow</div>
+    <p class="section-sub">Complete journey from kiosk approach to payment receipt</p>
+
+    <div class="flow">
+      <div class="flow-row">
+        <div class="flow-step">
+          <div class="num">1</div>
+          <h4>Language Select</h4>
+          <p>8-language grid. Flag + native script + script name. Persisted to localStorage.</p>
+          <span class="endpoint">Route: /</span>
+        </div>
+        <div class="flow-connector">→</div>
+        <div class="flow-step">
+          <div class="num">2</div>
+          <h4>Login / Register</h4>
+          <p>10-digit phone + 4-digit PIN. Validated against IndexedDB. Demo mode available.</p>
+          <span class="endpoint">Route: /login · /register</span>
+        </div>
+        <div class="flow-connector">→</div>
+        <div class="flow-step">
+          <div class="num">3</div>
+          <h4>Dashboard</h4>
+          <p>4 service tiles (Electricity, Water, Municipal, Gas). Recent activity. Consumer ID chip.</p>
+          <span class="endpoint">Route: /dashboard</span>
+        </div>
+        <div class="flow-connector">→</div>
+        <div class="flow-step">
+          <div class="num">4</div>
+          <h4>Service Selection</h4>
+          <p>Select department. Choose from available services (pay bill, new connection, complaint…)</p>
+          <span class="endpoint">GET /kiosk/departments</span>
+        </div>
+      </div>
+      <div class="flow-down">↓</div>
+      <div class="flow-row" style="flex-direction:row-reverse;">
+        <div class="flow-step" style="border-top:3px solid var(--green);">
+          <div class="num" style="background:var(--green);">7</div>
+          <h4>Receipt</h4>
+          <p>Reference number. Print/share. Offline badge if payment was queued.</p>
+          <span class="endpoint">Route: /receipt/:id</span>
+        </div>
+        <div class="flow-connector">←</div>
+        <div class="flow-step">
+          <div class="num">6</div>
+          <h4>OTP Verify (Kiosk)</h4>
+          <p>6-digit OTP sent to phone. SHA-256 hashed. 3 attempts, 5-min expiry. Session token issued.</p>
+          <span class="endpoint">POST /kiosk/session/verify-otp</span>
+        </div>
+        <div class="flow-connector">←</div>
+        <div class="flow-step">
+          <div class="num">5</div>
+          <h4>Payment Wizard</h4>
+          <p>PaymentMethodSelector → UPI / Card / NetBanking → svc_initiate → svc_complete</p>
+          <span class="endpoint">POST /api/v1/{dept}/pay-bill</span>
+        </div>
+        <div class="flow-connector">←</div>
+        <div class="flow-step">
+          <div class="num" style="background:var(--amber);">4b</div>
+          <h4>Bill / Form Entry</h4>
+          <p>Fetch pending bills or fill service form. Virtual keyboard active on all inputs.</p>
+          <span class="endpoint">GET /api/v1/{dept}/bills/{uid}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. AUTH ARCHITECTURE -->
+  <div class="section">
+    <div class="section-title">3 · Authentication Architecture</div>
+    <p class="section-sub">Two separate auth layers — admin JWT + citizen OTP session</p>
+
+    <div class="auth-flow">
+      <div class="auth-col">
+        <h4>Admin JWT</h4>
+        <div class="auth-item">
+          <strong>POST /admin/login</strong>
+          <span>OAuth2PasswordRequestForm → bcrypt verify → JWT HS256</span>
+        </div>
+        <div class="auth-item">
+          <strong>Token Claims</strong>
+          <span>sub (username), role, department, exp (8h)</span>
+        </div>
+        <div class="auth-item">
+          <strong>Role: super_admin</strong>
+          <span>All departments. Kiosk config. Merchant setup.</span>
+        </div>
+        <div class="auth-item">
+          <strong>Role: dept_admin</strong>
+          <span>Own department only. Auto-scoped in all queries.</span>
+        </div>
+      </div>
+
+      <div class="auth-col">
+        <h4>Citizen OTP Session</h4>
+        <div class="auth-item">
+          <strong>Step 1: Start Session</strong>
+          <span>POST /kiosk/session/start → generate 6-digit OTP → SHA-256 hash → SMS stub</span>
+        </div>
+        <div class="auth-item">
+          <strong>Step 2: Verify OTP</strong>
+          <span>POST /kiosk/session/verify-otp → max 3 attempts, 5-min window → session_token</span>
+        </div>
+        <div class="auth-item">
+          <strong>Session Token</strong>
+          <span>secrets.token_urlsafe(32) — 256 bits entropy, 30-min TTL</span>
+        </div>
+        <div class="auth-item">
+          <strong>Returning User</strong>
+          <span>Phone lookup → reuse Razorpay customer ID → no re-registration</span>
+        </div>
+      </div>
+
+      <div class="auth-col">
+        <h4>Frontend Auth (Citizen)</h4>
+        <div class="auth-item">
+          <strong>Register</strong>
+          <span>UUID user, phone regex validation, 4-digit PIN, IndexedDB storage</span>
+        </div>
+        <div class="auth-item">
+          <strong>Login</strong>
+          <span>Phone lookup in IndexedDB → PIN compare → 8h session in localStorage</span>
+        </div>
+        <div class="auth-item">
+          <strong>Rehydration</strong>
+          <span>On mount: read koisk_session → check expiry → load user from IndexedDB</span>
+        </div>
+        <div class="auth-item">
+          <strong>Demo Mode</strong>
+          <span>loginDemo() → pre-seeded user → instant dashboard access</span>
+        </div>
+      </div>
+
+      <div class="auth-col">
+        <h4>Security Properties</h4>
+        <div class="auth-item">
+          <strong>Admin passwords</strong>
+          <span>bcrypt via passlib CryptContext</span>
+        </div>
+        <div class="auth-item">
+          <strong>OTP storage</strong>
+          <span>SHA-256 hashed — never plaintext in DB or logs</span>
+        </div>
+        <div class="auth-item">
+          <strong>Brute force</strong>
+          <span>OTP: 3 attempts max then session restart required</span>
+        </div>
+        <div class="auth-item">
+          <strong>CORS / Monitoring</strong>
+          <span>CORS env-configured; Sentry SDK included for production</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. SERVICE MATRIX -->
+  <div class="section">
+    <div class="section-title">4 · Departmental Service Matrix</div>
+    <p class="section-sub">All services mapped to catalogue IDs and implemented API endpoints</p>
+
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>⚡ Electricity</th>
+          <th>💧 Water</th>
+          <th>🏛️ Municipal</th>
+          <th>🔥 Gas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Pay Bill</td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span> (property tax)</td><td><span class="note">tile only</span></td></tr>
+        <tr><td>New Connection</td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td><td><span class="cross">—</span></td><td><span class="cross">—</span></td></tr>
+        <tr><td>Meter Change</td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td><td><span class="cross">—</span></td><td><span class="cross">—</span></td></tr>
+        <tr><td>Service Transfer</td><td><span class="tick">✓</span></td><td><span class="cross">—</span></td><td><span class="cross">—</span></td><td><span class="cross">—</span></td></tr>
+        <tr><td>Submit Meter Reading</td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td><td><span class="cross">—</span></td><td><span class="cross">—</span></td></tr>
+        <tr><td>Complaint / Grievance</td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td><td><span class="cross">—</span></td></tr>
+        <tr><td>Trade License (new + renewal)</td><td><span class="cross">—</span></td><td><span class="cross">—</span></td><td><span class="tick">✓</span></td><td><span class="cross">—</span></td></tr>
+        <tr><td>Birth Certificate</td><td><span class="cross">—</span></td><td><span class="cross">—</span></td><td><span class="tick">✓</span></td><td><span class="cross">—</span></td></tr>
+        <tr><td>Death Certificate</td><td><span class="cross">—</span></td><td><span class="cross">—</span></td><td><span class="tick">✓</span></td><td><span class="cross">—</span></td></tr>
+        <tr><td>Building Plan Approval</td><td><span class="cross">—</span></td><td><span class="cross">—</span></td><td><span class="tick">✓</span></td><td><span class="cross">—</span></td></tr>
+        <tr>
+          <td style="font-weight:700;color:var(--navy)">Total Services</td>
+          <td style="font-weight:700;color:var(--teal)">6</td>
+          <td style="font-weight:700;color:var(--teal)">6</td>
+          <td style="font-weight:700;color:var(--teal)">8</td>
+          <td style="font-weight:700;color:var(--amber)">tile</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 5. PAYMENT FLOW -->
+  <div class="section">
+    <div class="section-title">5 · Payment Architecture</div>
+    <p class="section-sub">Three-tier gateway strategy with offline queue fallback</p>
+
+    <div style="margin-bottom:20px;">
+      <div class="pay-flow">
+        <div class="pay-step mock"><strong>Mock Engine</strong><span>Dev / Demo</span></div>
+        <div class="pay-arrow">→</div>
+        <div class="pay-step portone"><strong>PortOne</strong><span>Primary Production</span></div>
+        <div class="pay-arrow">→</div>
+        <div class="pay-step razor"><strong>Razorpay</strong><span>Per-department</span></div>
+        <div class="pay-arrow">→</div>
+        <div class="pay-step offline"><strong>Offline Queue</strong><span>IndexedDB syncQueue</span></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="background:white;border-radius:12px;border:1.5px solid var(--gray);padding:18px;">
+        <h4 style="font-family:'Sora',sans-serif;font-size:13px;font-weight:700;margin-bottom:10px;color:var(--navy);">Payment Initiation Flow</h4>
+        <div style="font-size:12px;color:var(--muted);line-height:2;font-family:'DM Mono',monospace;">
+          1. POST /api/v1/{dept}/pay-bill<br>
+          2. svc_initiate() → orderId + isMock flag<br>
+          3a. isMock=true → svc_complete() → receipt<br>
+          3b. isMock=false → frontend gateway SDK<br>
+          4. POST /api/v1/payments/complete<br>
+          5. Webhook → signature verify → update status
+        </div>
+      </div>
+      <div style="background:white;border-radius:12px;border:1.5px solid var(--gray);padding:18px;">
+        <h4 style="font-family:'Sora',sans-serif;font-size:13px;font-weight:700;margin-bottom:10px;color:var(--navy);">Supported Methods</h4>
+        <div style="margin-bottom:8px;">
+          <span class="chip green">UPI</span>
+          <span class="chip green">Card (Debit/Credit)</span>
+          <span class="chip green">Net Banking</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;">
+          Per-dept Razorpay keys managed by super_admin via POST /admin/kiosk-config. Keys stored server-side; last-4 hint only returned to UI.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. DB SCHEMA -->
+  <div class="section">
+    <div class="section-title">6 · Database Schema</div>
+    <p class="section-sub">11 ORM models, single declarative Base, SQLite dev / PostgreSQL prod</p>
+
+    <div class="db-grid">
+      <div class="db-card">
+        <h4>users</h4>
+        <ul>
+          <li class="pk">id (PK)</li>
+          <li>username, full_name, email</li>
+          <li>phone_number, address, city</li>
+          <li>hashed_password, is_active</li>
+          <li>last_login, google_id</li>
+        </ul>
+      </div>
+      <div class="db-card">
+        <h4>admins</h4>
+        <ul>
+          <li class="pk">id (PK)</li>
+          <li>username, hashed_password</li>
+          <li>role: super_admin | dept_admin | merchant</li>
+          <li>department (NULL = super_admin)</li>
+          <li>merchant_config (JSONB)</li>
+          <li>last_login</li>
+        </ul>
+      </div>
+      <div class="db-card">
+        <h4>service_requests</h4>
+        <ul>
+          <li class="pk">id (PK), service_request_id (unique)</li>
+          <li class="fk">user_id (FK → users)</li>
+          <li>department, service_type</li>
+          <li>status (state machine)</li>
+          <li>payload (JSONB)</li>
+          <li class="fk">payment_id (FK → payments)</li>
+          <li>created_at, completed_at</li>
+        </ul>
+      </div>
+      <div class="db-card">
+        <h4>payments</h4>
+        <ul>
+          <li class="pk">id (PK)</li>
+          <li>user_id, bill_id, department</li>
+          <li>amount, currency</li>
+          <li>gateway, payment_method</li>
+          <li>gateway_payment_id, reference_no</li>
+          <li>status, paid_at</li>
+        </ul>
+      </div>
+      <div class="db-card">
+        <h4>kiosk_sessions</h4>
+        <ul>
+          <li class="pk">id (PK)</li>
+          <li>full_name, phone_number, email</li>
+          <li>otp_code (SHA-256 hashed)</li>
+          <li>otp_attempts (max 3)</li>
+          <li>session_token (urlsafe 32B)</li>
+          <li>razorpay_customer_id</li>
+          <li>is_returning_user, kiosk_id</li>
+        </ul>
+      </div>
+      <div class="db-card">
+        <h4>kiosk_config</h4>
+        <ul>
+          <li class="pk">id (PK)</li>
+          <li>department (unique: elec/water/muni/global)</li>
+          <li>razorpay_key_id, razorpay_key_secret</li>
+          <li>razorpay_key_id_hint (last 4, safe to show)</li>
+          <li>razorpay_mode: test | live</li>
+          <li>is_active, settings (JSONB)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. LANGUAGES -->
+  <div class="section">
+    <div class="section-title">7 · Multilingual Support</div>
+    <p class="section-sub">8 languages — single source of truth — adding a 9th takes 3 steps, 0 component changes</p>
+
+    <div class="lang-grid">
+      <div class="lang-card"><div class="flag">🇬🇧</div><div class="native">English</div><div class="en">English</div><div class="script">Latin</div></div>
+      <div class="lang-card"><div class="flag">🇮🇳</div><div class="native">हिन्दी</div><div class="en">Hindi</div><div class="script">Devanagari</div></div>
+      <div class="lang-card"><div class="flag">🇮🇳</div><div class="native">ଓଡ଼ିଆ</div><div class="en">Odia</div><div class="script">Odia</div></div>
+      <div class="lang-card"><div class="flag">🇮🇳</div><div class="native">తెలుగు</div><div class="en">Telugu</div><div class="script">Telugu</div></div>
+      <div class="lang-card"><div class="flag">🇮🇳</div><div class="native">தமிழ்</div><div class="en">Tamil</div><div class="script">Tamil</div></div>
+      <div class="lang-card"><div class="flag">🇮🇳</div><div class="native">ಕನ್ನಡ</div><div class="en">Kannada</div><div class="script">Kannada</div></div>
+      <div class="lang-card"><div class="flag">🇮🇳</div><div class="native">मराठी</div><div class="en">Marathi</div><div class="script">Devanagari</div></div>
+      <div class="lang-card unique"><div class="flag">🇮🇳</div><div class="native">ꯃꯅꯤꯄꯨꯔꯤ</div><div class="en">Manipuri ⭐</div><div class="script">Meitei-Mayek</div></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:12px;">⭐ Meitei-Mayek (Manipuri) is believed to be unique among SUVIDHA 2026 entries — strong differentiator for North East India coverage and Pillar 3 judging.</p>
+  </div>
+
+  <!-- 8. GOALS 2.0 / ROADMAP -->
+  <div class="section">
+    <div class="section-title">8 · Goals 2.0 — What Needs Doing</div>
+    <p class="section-sub">Prioritised task list for demo readiness and physical final round</p>
+
+    <table class="gap-table">
+      <thead>
+        <tr><th>Priority</th><th>Task</th><th>Location</th><th>Effort</th><th>Phase</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="prio red">CRITICAL</span></td>
+          <td>Wire Orchestrator to GET /health for real connectivity detection — set _backendConnected true when API is reachable</td>
+          <td>orchestrator.js</td><td>~30 min</td><td>Now</td>
+        </tr>
+        <tr>
+          <td><span class="prio red">CRITICAL</span></td>
+          <td>Replace identity hashPin() with bcrypt-js — security concern if judges inspect IndexedDB in DevTools</td>
+          <td>authStore.js</td><td>~20 min</td><td>Now</td>
+        </tr>
+        <tr>
+          <td><span class="prio amber">HIGH</span></td>
+          <td>Add Gas department stub endpoint (GET /api/v1/gas/bills, POST /api/v1/gas/pay-bill) — dashboard tile currently has no backend</td>
+          <td>src/api/gas/ (new file)</td><td>~1 hr</td><td>Phase 2</td>
+        </tr>
+        <tr>
+          <td><span class="prio amber">HIGH</span></td>
+          <td>Record 90-second demo video: language select → login → dashboard → pay electricity bill → receipt</td>
+          <td>Screen recorder</td><td>~2 hr</td><td>Phase 2</td>
+        </tr>
+        <tr>
+          <td><span class="prio amber">HIGH</span></td>
+          <td>Draw system architecture diagram (slides 4, 6) — frontend ↔ orchestrator ↔ FastAPI ↔ DB with offline path</td>
+          <td>Draw.io / Figma</td><td>~2 hr</td><td>Phase 2</td>
+        </tr>
+        <tr>
+          <td><span class="prio amber">HIGH</span></td>
+          <td>Build all 13 PPT slides using official C-DAC template once received from WhatsApp group</td>
+          <td>PowerPoint</td><td>~1 day</td><td>Phase 2</td>
+        </tr>
+        <tr>
+          <td><span class="prio amber">HIGH</span></td>
+          <td>Screenshot all major UI screens for PPT slides 5, 7, 11 — language select, dashboard, payment flow, receipt, admin /docs</td>
+          <td>Browser</td><td>~1 hr</td><td>Phase 2</td>
+        </tr>
+        <tr>
+          <td><span class="prio blue">MED</span></td>
+          <td>Migrate FastAPI startup to lifespan context manager — removes deprecation warning visible during live demo</td>
+          <td>main.py</td><td>~15 min</td><td>Phase 2</td>
+        </tr>
+        <tr>
+          <td><span class="prio blue">MED</span></td>
+          <td>Add koisk.db* files to .gitignore — 712KB database committed to repo</td>
+          <td>.gitignore</td><td>5 min</td><td>Now</td>
+        </tr>
+        <tr>
+          <td><span class="prio blue">MED</span></td>
+          <td>Full dry-run of 10-minute presentation slot — practice speaking to all 4 C-DAC pillars with fallback screenshots ready</td>
+          <td>Team</td><td>~3 hr</td><td>Phase 3</td>
+        </tr>
+        <tr>
+          <td><span class="prio green">LOW</span></td>
+          <td>Add browser SpeechSynthesis API text-to-speech toggle — accessibility bonus for Pillar 3</td>
+          <td>New: useTTS.js hook</td><td>~2 hr</td><td>Phase 4</td>
+        </tr>
+        <tr>
+          <td><span class="prio green">LOW</span></td>
+          <td>Add font size toggle (normal / large) — senior citizen accessibility feature, easy Pillar 3 win</td>
+          <td>CSS variable on :root</td><td>~1 hr</td><td>Phase 4</td>
+        </tr>
+        <tr>
+          <td><span class="prio green">LOW</span></td>
+          <td>Migrate SQLite to PostgreSQL for physical final round production deploy</td>
+          <td>DATABASE_URL env + alembic</td><td>~half day</td><td>Phase 4</td>
+        </tr>
+        <tr>
+          <td><span class="prio green">LOW</span></td>
+          <td>Build Admin UI (currently backend API only) — React dashboard for request management and payment viewing</td>
+          <td>New: src/admin/ module</td><td>~2 days</td><td>Phase 4</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    SUVIDHA 2026 — KOISK UI · C-DAC CINE · Architecture & Flow Reference · March 2026<br>
+    React 18 + FastAPI + IndexedDB · 8 Languages · 40+ Endpoints · Offline-First
+  </div>
+
+</div>
+</body>
+</html>

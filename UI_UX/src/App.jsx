@@ -3,14 +3,14 @@ import { useAuthStore } from '@/modules/auth/authStore';
 import { useEffect } from 'react';
 import localDB from '/src/modules/localdb/localDB.js';
 import { useKeyboard } from './context/KeyboardContext';
-import Keyboard from './components/kiosk/Keyboard'; // fixed path
+import Keyboard from './components/kiosk/Keyboard';
 
 // Pages
 import LanguageSelect from '@/modules/language/LanguageSelect';
 import LoginPage from '@/modules/auth/LoginPage';
 import RegisterPage from '@/modules/auth/RegisterPage';
 import Dashboard from '@/components/kiosk/Dashboard';
-import ReceiptScreen from '@/modules/payments/ReceiptScreen';
+import ReceiptScreen from '@/modules/payment/ReceiptScreen'; // FIX: was @/modules/payments/
 
 // Orchestrator stub
 import '@/modules/orchestrator/orchestrator';
@@ -31,7 +31,7 @@ function PublicOnly({ children }) {
 
 export default function App() {
   const initAuth = useAuthStore(s => s.initFromStorage);
-  const { activeInput, handleKeyPress, blurInput } = useKeyboard(); // now inside App
+  const { activeInput, handleKeyPress, blurInput } = useKeyboard();
 
   // On mount: boot the DB and rehydrate session
   useEffect(() => {
