@@ -46,7 +46,6 @@ export default function Keyboard({ onKeyPress, onClose }) {
 
   return (
     <div
-      id="keyboard-container"
       className="fixed bottom-0 left-0 right-0 z-50"
       role="dialog"
       aria-label="On-screen keyboard"

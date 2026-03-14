@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KOISK — SUVIDHA 2026 | C-DAC Competition Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+/* ── Reset & Tokens ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy:    #0F2044;
+  --blue:    #1A3A6B;
+  --teal:    #0B6E6E;
+  --accent:  #00C9A7;
+  --amber:   #F59E0B;
+  --danger:  #EF4444;
+  --success: #10B981;
+  --surface: #F0F4FA;
+  --muted:   #5D6D8E;
+  --white:   #FFFFFF;
+  --font-display: 'Sora', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+  --r-xl:  24px;
+  --r-lg:  16px;
+  --r-md:  12px;
+}
+html { font-family: var(--font-body); background: var(--surface); -webkit-font-smoothing: antialiased; }
+body { min-height: 100vh; overflow-x: hidden; user-select: none; }
+input, textarea { user-select: text; }
+
+/* ── Animations ─────────────────────────────────────────────────── */
+@keyframes fadeUp   { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+@keyframes slideIn  { from { opacity:0; transform:translateX(-20px); } to { opacity:1; transform:translateX(0); } }
+@keyframes bounceIn { from { opacity:0; transform:scale(.6); } to { opacity:1; transform:scale(1); } }
+@keyframes spin     { to { transform:rotate(360deg); } }
+@keyframes pulseRing{ 0%{transform:scale(.8);opacity:1} 100%{transform:scale(2);opacity:0} }
+@keyframes countDown{ from{stroke-dashoffset:0} to{stroke-dashoffset:283} }
+
+.anim-fade-up  { animation: fadeUp  .4s ease forwards; }
+.anim-fade-in  { animation: fadeIn  .3s ease forwards; }
+.anim-slide-in { animation: slideIn .35s cubic-bezier(.16,1,.3,1) forwards; }
+.anim-bounce   { animation: bounceIn .5s cubic-bezier(.34,1.56,.64,1) forwards; }
+.anim-spin     { animation: spin .9s linear infinite; }
+.d1  { animation-delay:.1s; } .d2 { animation-delay:.2s; }
+.d3  { animation-delay:.3s; } .d4 { animation-delay:.4s; }
+.d5  { animation-delay:.5s; } .d6 { animation-delay:.6s; }
+.op0 { opacity:0; }
+
+/* ── Screen shell ────────────────────────────────────────────────── */
+.screen {
+  display: none;
+  min-height: 100vh;
+  flex-direction: column;
+  background: var(--surface);
+}
+.screen.active { display: flex; }
+
+/* ── Top Nav ─────────────────────────────────────────────────────── */
+.top-nav {
+  background: var(--navy);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.top-nav .brand { font-family: var(--font-display); font-weight: 700; color: white; font-size: 18px; }
+.top-nav .back-btn {
+  color: rgba(255,255,255,.7);
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-body); font-size: 14px;
+  display: flex; align-items: center; gap: 6px;
+  transition: color .15s;
+  min-height: 44px; min-width: 44px; padding: 0 8px;
+}
+.top-nav .back-btn:hover { color: white; }
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+.btn-primary {
+  background: var(--teal); color: white;
+  font-family: var(--font-display); font-weight: 600;
+  padding: 16px 32px; border-radius: var(--r-xl); border: none;
+  font-size: 16px; cursor: pointer; min-height: 60px;
+  transition: all .2s; width: 100%;
+}
+.btn-primary:hover  { background: var(--navy); box-shadow: 0 4px 16px rgba(11,110,110,.3); }
+.btn-primary:active { transform: scale(.97); }
+.btn-primary:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+
+.btn-secondary {
+  background: white; color: var(--navy);
+  font-family: var(--font-display); font-weight: 600;
+  padding: 16px 32px; border-radius: var(--r-xl);
+  border: 2px solid rgba(26,58,107,.2);
+  font-size: 16px; cursor: pointer; min-height: 60px;
+  transition: all .2s; width: 100%;
+}
+.btn-secondary:hover  { border-color: var(--teal); color: var(--teal); }
+.btn-secondary:active { transform: scale(.97); }
+
+.btn-row { display: flex; gap: 12px; }
+.btn-row .btn-primary, .btn-row .btn-secondary { flex: 1; }
+.btn-row .btn-primary.flex2 { flex: 2; }
+
+/* ── Cards ───────────────────────────────────────────────────────── */
+.card {
+  background: white;
+  border-radius: var(--r-xl);
+  border: 1px solid rgba(26,58,107,.1);
+  transition: all .2s;
+}
+.card-hover {
+  background: white;
+  border-radius: var(--r-xl);
+  border: 1px solid rgba(26,58,107,.1);
+  cursor: pointer;
+  transition: all .2s;
+  text-align: left;
+  padding: 20px;
+}
+.card-hover:hover  { box-shadow: 0 6px 20px rgba(26,58,107,.12); border-color: rgba(11,110,110,.3); transform: translateY(-2px); }
+.card-hover:active { transform: scale(.98); }
+
+/* ── Inputs ──────────────────────────────────────────────────────── */
+.input-label {
+  display: block; font-size: 11px; font-family: var(--font-display); font-weight: 600;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px;
+}
+.input-field {
+  width: 100%; background: white; border: 2px solid rgba(26,58,107,.15);
+  border-radius: var(--r-xl); padding: 16px 20px; font-size: 16px;
+  color: var(--navy); font-family: var(--font-body);
+  min-height: 60px; outline: none; transition: all .2s;
+}
+.input-field::placeholder { color: rgba(93,109,142,.5); }
+.input-field:focus { border-color: var(--teal); box-shadow: 0 0 0 4px rgba(11,110,110,.08); }
+
+/* ── Badges ──────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 4px 12px; border-radius: 99px;
+  font-size: 11px; font-family: var(--font-display); font-weight: 600;
+}
+.badge-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.badge-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.badge-info    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+.badge-muted   { background: #f9fafb; color: #374151; border: 1px solid #e5e7eb; }
+
+/* ── Heading ─────────────────────────────────────────────────────── */
+h1,h2,h3 { font-family: var(--font-display); color: var(--navy); }
+
+/* ── Modal overlay ───────────────────────────────────────────────── */
+.modal-bg {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(15,32,68,.6);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.modal-box {
+  background: white; border-radius: var(--r-xl);
+  box-shadow: 0 24px 64px rgba(15,32,68,.2);
+  max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto;
+  padding: 28px 24px;
+}
+
+/* ── Idle overlay ────────────────────────────────────────────────── */
+#idle-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(15,32,68,.85); backdrop-filter: blur(8px);
+  display: none; align-items: center; justify-content: center;
+}
+#idle-overlay.show { display: flex; }
+.idle-box {
+  background: white; border-radius: var(--r-xl);
+  padding: 48px 40px; text-align: center; max-width: 360px; width: 100%;
+  animation: bounceIn .4s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+.idle-count {
+  width: 90px; height: 90px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 800; font-size: 36px;
+  margin: 0 auto 20px;
+  transition: background .5s, color .5s;
+}
+.idle-count.calm   { background: #fef3c7; color: #92400e; }
+.idle-count.urgent { background: #fee2e2; color: var(--danger); }
+
+/* ── Keyboard ────────────────────────────────────────────────────── */
+#keyboard {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 60;
+  background: rgba(15,32,68,.88); backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255,255,255,.15);
+  padding: 12px 8px 16px; display: none;
+}
+#keyboard.show { display: block; }
+.kb-row { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; flex-wrap: wrap; }
+.kb-key {
+  background: rgba(255,255,255,.08); color: rgba(255,255,255,.9);
+  border: none; border-radius: 10px; cursor: pointer;
+  font-family: var(--font-body); font-weight: 500; font-size: 15px;
+  padding: 11px 0; transition: all .1s;
+  min-height: 44px; min-width: 44px;
+  display: flex; align-items: center; justify-content: center;
+}
+.kb-key:active { transform: scale(.93); background: rgba(255,255,255,.2); }
+.kb-key.special { background: rgba(255,255,255,.14); font-size: 13px; }
+.kb-key.close   { background: rgba(0,201,167,.25); font-size: 13px; font-weight: 600; }
+.kb-key.active-shift { background: var(--accent); color: var(--navy); font-weight: 700; }
+.kb-letter  { width: 36px; }
+.kb-space   { width: 120px; }
+.kb-special { width: 70px; }
+
+/* ── Step dots ───────────────────────────────────────────────────── */
+.step-dots { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 24px; }
+.step-dot-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.step-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; font-family: var(--font-display);
+  transition: background .2s, color .2s;
+}
+.step-dot.done   { background: var(--teal);   color: white; }
+.step-dot.active { background: var(--teal);   color: white; }
+.step-dot.future { background: var(--surface); color: var(--muted); border: 1px solid rgba(26,58,107,.2); }
+.step-label { font-size: 10px; font-family: var(--font-display); font-weight: 600; }
+.step-label.done, .step-label.active { color: var(--teal); }
+.step-label.future { color: var(--muted); }
+.step-line { flex: 1; height: 2px; margin-bottom: 16px; transition: background .2s; }
+.step-line.done   { background: var(--teal); }
+.step-line.future { background: rgba(26,58,107,.15); }
+
+/* ── Demo nav bar (PPT helper) ───────────────────────────────────── */
+#demo-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  background: rgba(15,32,68,.95); border-top: 1px solid rgba(255,255,255,.1);
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 8px 12px; flex-wrap: wrap;
+}
+.demo-btn {
+  background: rgba(255,255,255,.1); color: rgba(255,255,255,.8);
+  border: 1px solid rgba(255,255,255,.15); border-radius: 8px;
+  padding: 6px 14px; font-size: 11px; font-family: var(--font-display); font-weight: 600;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.demo-btn:hover { background: rgba(255,255,255,.2); color: white; }
+.demo-btn.active { background: var(--accent); color: var(--navy); border-color: var(--accent); }
+#demo-bar-toggle {
+  position: fixed; bottom: 44px; right: 12px; z-index: 201;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent); color: var(--navy); border: none;
+  font-size: 16px; cursor: pointer; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 10px rgba(0,201,167,.4);
+}
+.mb-pb { padding-bottom: 64px; }
+
+/* ── ============= SCREENS ============= ── */
+
+/* Language Select */
+#screen-language {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 60%, var(--teal) 100%);
+}
+.lang-dot-grid {
+  position: absolute; inset: 0; opacity: .05;
+  background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+.lang-logo-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.lang-logo-icon {
+  width: 52px; height: 52px; border-radius: var(--r-lg);
+  background: rgba(0,201,167,.2); border: 1px solid rgba(0,201,167,.4);
+  display: flex; align-items: center; justify-content: center; font-size: 26px;
+}
+.lang-logo-text { font-family: var(--font-display); font-weight: 800; color: white; font-size: 40px; letter-spacing: -1px; }
+.lang-tagline { color: rgba(0,201,167,.85); font-family: var(--font-body); font-size: 16px; }
+.lang-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; max-width: 720px; }
+.lang-btn {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; min-height: 96px; border-radius: var(--r-lg); padding: 14px;
+  font-family: var(--font-display); font-weight: 600; font-size: 16px;
+  border: 2px solid; cursor: pointer; transition: all .2s;
+}
+.lang-btn.unsel { background: rgba(255,255,255,.1); color: white; border-color: rgba(255,255,255,.2); }
+.lang-btn.unsel:hover { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.4); }
+.lang-btn.sel   { background: var(--accent); color: var(--navy); border-color: var(--accent); transform: scale(1.04); box-shadow: 0 6px 20px rgba(0,201,167,.35); }
+.lang-btn .check { position: absolute; top: 6px; right: 8px; font-size: 12px; }
+.lang-flag { font-size: 28px; }
+.lang-sub { font-size: 11px; font-family: var(--font-body); opacity: .65; }
+.lang-continue-btn {
+  background: var(--accent); color: var(--navy);
+  font-family: var(--font-display); font-weight: 700;
+  padding: 18px 48px; border-radius: var(--r-xl); border: none;
+  font-size: 18px; cursor: pointer; min-width: 240px; min-height: 64px;
+  transition: all .2s;
+}
+.lang-continue-btn:hover { background: white; }
+.lang-continue-btn:active { transform: scale(.97); }
+
+/* Login */
+.login-center { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.login-box { width: 100%; max-width: 440px; }
+.auth-icon-wrap {
+  width: 64px; height: 64px; border-radius: 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; margin: 0 auto 16px;
+}
+.divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+.divider-line { flex: 1; height: 1px; background: rgba(26,58,107,.1); }
+.divider-text { font-size: 13px; color: var(--muted); font-family: var(--font-body); }
+.demo-dashed {
+  width: 100%; padding: 16px; border-radius: var(--r-xl);
+  border: 2px dashed rgba(11,110,110,.4); background: none;
+  color: var(--teal); font-family: var(--font-display); font-weight: 600; font-size: 15px;
+  cursor: pointer; transition: all .2s; min-height: 60px;
+}
+.demo-dashed:hover { background: rgba(11,110,110,.05); }
+
+/* Dashboard */
+.dash-body { flex: 1; max-width: 760px; width: 100%; margin: 0 auto; padding: 24px 16px; padding-bottom: 80px; }
+.service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (min-width: 640px) { .service-grid { grid-template-columns: repeat(4,1fr); } }
+.svc-icon {
+  width: 48px; height: 48px; border-radius: var(--r-lg);
+  background: linear-gradient(135deg, var(--c1), var(--c2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; margin-bottom: 12px; box-shadow: 0 3px 8px rgba(0,0,0,.12);
+}
+.svc-name { font-family: var(--font-display); font-weight: 600; color: var(--navy); font-size: 15px; }
+.svc-sub  { font-size: 11px; color: var(--muted); font-family: var(--font-body); margin-top: 2px; }
+.section-title { font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 17px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.activity-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: white; border-radius: var(--r-xl); padding: 14px 16px;
+  border: 1px solid rgba(26,58,107,.08); margin-bottom: 10px;
+}
+.activity-title { font-family: var(--font-display); font-weight: 600; color: var(--navy); font-size: 14px; }
+.activity-sub   { font-size: 12px; color: var(--muted); font-family: var(--font-body); margin-top: 2px; }
+.activity-amount { font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 15px; text-align: right; }
+.consumer-chip {
+  display: flex; align-items: center; gap: 12px; padding: 16px;
+  background: white; border-radius: var(--r-xl); border: 1px solid rgba(26,58,107,.08);
+}
+
+/* Service screen */
+.dept-hero { padding: 28px 24px; }
+.dept-hero-inner { max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: 16px; }
+.dept-icon-lg { width: 64px; height: 64px; border-radius: 28px; background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-size: 36px; box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+.dept-title { font-family: var(--font-display); font-weight: 700; color: white; font-size: 24px; }
+.dept-sub   { color: rgba(255,255,255,.7); font-family: var(--font-body); font-size: 14px; margin-top: 4px; }
+.tile-grid { max-width: 760px; margin: 0 auto; padding: 20px 16px 80px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (min-width: 640px) { .tile-grid { grid-template-columns: repeat(3,1fr); } }
+.tile-icon { width: 44px; height: 44px; border-radius: var(--r-md); background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 12px; }
+
+/* Payment */
+.bill-card { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--r-lg); padding: 20px; margin-bottom: 20px; }
+.bill-row  { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; }
+.bill-row .lbl { color: var(--muted); font-family: var(--font-body); }
+.bill-row .val { color: var(--navy); font-weight: 600; font-family: var(--font-body); }
+.bill-divider { border: none; border-top: 1px solid #bfdbfe; margin: 10px 0; }
+.bill-amount-row { display: flex; justify-content: space-between; align-items: center; }
+.bill-amount-lbl { font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 15px; }
+.bill-amount-val { font-family: var(--font-display); font-weight: 800; color: var(--teal); font-size: 28px; }
+.method-card {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+  border-radius: var(--r-lg); border: 2px solid rgba(26,58,107,.1);
+  background: white; cursor: pointer; margin-bottom: 10px; transition: all .15s;
+}
+.method-card:hover  { border-color: var(--teal); background: rgba(11,110,110,.03); }
+.method-card.active { border-color: var(--teal); background: rgba(11,110,110,.05); }
+.method-radio {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid #d1d5db; background: white;
+  display: flex; align-items: center; justify-content: center;
+  margin-left: auto; flex-shrink: 0; transition: all .15s;
+}
+.method-card.active .method-radio { border-color: var(--teal); background: var(--teal); }
+.method-radio-dot { width: 8px; height: 8px; border-radius: 50%; background: white; }
+
+/* Receipt */
+.receipt-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; background: #f0fdf4; }
+.receipt-card { background: white; border-radius: var(--r-xl); padding: 36px 28px; max-width: 460px; width: 100%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+.receipt-ref { background: #f0fdf4; border: 1px dashed #86efac; border-radius: var(--r-md); padding: 14px 20px; margin-bottom: 20px; }
+.receipt-table { border: 1px solid rgba(26,58,107,.1); border-radius: var(--r-lg); overflow: hidden; margin-bottom: 24px; text-align: left; }
+.receipt-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; font-size: 14px; }
+.receipt-row:not(:last-child) { border-bottom: 1px solid rgba(26,58,107,.07); }
+.receipt-row:nth-child(even) { background: var(--surface); }
+
+/* Processing */
+.processing-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 16px; gap: 20px; }
+.spinner { width: 56px; height: 56px; border: 4px solid rgba(26,58,107,.1); border-top-color: var(--teal); border-radius: 50%; }
+
+/* ── Offline banner ──────────────────────────────────────────────── */
+.offline-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: #fffbeb; border: 1px solid #f59e0b; border-radius: var(--r-md);
+  padding: 12px 16px; margin-bottom: 16px; font-size: 14px; color: #92400e;
+}
+
+/* ── Form ────────────────────────────────────────────────────────── */
+.form-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.form-icon   { width: 48px; height: 48px; border-radius: 18px; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink:0; }
+.close-btn   { margin-left: auto; background: none; border: none; font-size: 20px; color: var(--muted); cursor: pointer; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all .15s; }
+.close-btn:hover { background: var(--surface); color: var(--navy); }
+.space-y4 > * + * { margin-top: 16px; }
+
+/* ── Accessibility: visible focus ────────────────────────────────── */
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+/* ── Greeting ────────────────────────────────────────────────────── */
+.greeting-sub  { color: rgba(0,201,167,.75); font-size: 13px; font-family: var(--font-body); }
+.greeting-name { color: white; font-family: var(--font-display); font-weight: 700; font-size: 20px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 1: LANGUAGE SELECT
+═══════════════════════════════════════════ -->
+<section id="screen-language" class="screen active" style="position:relative;align-items:center;justify-content:center;padding:32px 16px;">
+  <div class="lang-dot-grid"></div>
+  <div style="position:relative;width:100%;max-width:760px;display:flex;flex-direction:column;align-items:center;gap:0;">
+    <div class="anim-fade-up op0 lang-logo-wrap">
+      <div class="lang-logo-icon">🏛️</div>
+      <span class="lang-logo-text">KOISK</span>
+    </div>
+    <p class="anim-fade-up op0 d1 lang-tagline" style="margin-bottom:32px;">Smart Civic Utility Kiosk · SUVIDHA 2026</p>
+    <h1 class="anim-fade-up op0 d1" style="font-family:var(--font-display);color:white;font-size:28px;font-weight:700;text-align:center;margin-bottom:8px;">Choose Your Language</h1>
+    <p class="anim-fade-up op0 d2" style="color:rgba(255,255,255,.6);font-size:16px;margin-bottom:28px;text-align:center;">अपनी भाषा चुनें · ನಿಮ್ಮ ಭಾಷೆ ಆಯ್ಕೆ ಮಾಡಿ</p>
+    <div class="anim-fade-up op0 d2 lang-grid" id="lang-grid">
+      <!-- JS renders language buttons -->
+    </div>
+    <div class="anim-fade-up op0 d4" style="margin-top:28px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <p style="color:rgba(255,255,255,.45);font-size:12px;font-family:var(--font-body);">Selected: <span id="lang-selected-name" style="color:white;font-weight:600;">English</span></p>
+      <button class="lang-continue-btn" onclick="goLogin()">Continue →</button>
+    </div>
+    <p style="color:rgba(255,255,255,.25);font-size:11px;margin-top:16px;">8 languages supported</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 2: LOGIN
+═══════════════════════════════════════════ -->
+<section id="screen-login" class="screen">
+  <nav class="top-nav">
+    <button class="back-btn" onclick="goScreen('language')" aria-label="Back to language selection">← Back</button>
+    <span class="brand">KOISK</span>
+    <button class="back-btn" onclick="goScreen('language')" style="font-size:12px;color:rgba(255,255,255,.5);">Change Language</button>
+  </nav>
+  <div class="login-center">
+    <div class="login-box anim-fade-up op0">
+      <div style="text-align:center;margin-bottom:28px;">
+        <div class="auth-icon-wrap" style="background:rgba(11,110,110,.1);">🔐</div>
+        <h1 style="font-size:28px;margin-bottom:6px;">Sign In</h1>
+        <p style="color:var(--muted);font-size:15px;font-family:var(--font-body);">Enter your registered phone and PIN</p>
+      </div>
+      <div class="space-y4">
+        <div>
+          <label class="input-label" for="login-phone">Phone Number</label>
+          <input class="input-field" id="login-phone" type="tel" inputmode="numeric" placeholder="Enter 10-digit mobile number" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10);checkLogin()"/>
+        </div>
+        <div>
+          <label class="input-label" for="login-pin">4-Digit PIN</label>
+          <input class="input-field" id="login-pin" type="password" inputmode="numeric" placeholder="••••" maxlength="4" style="letter-spacing:.5em;font-size:22px;" oninput="this.value=this.value.replace(/\D/g,'').slice(0,4);checkLogin()"/>
+        </div>
+        <button class="btn-primary" id="login-btn" disabled onclick="doLogin()">Sign In</button>
+      </div>
+      <div class="divider"><div class="divider-line"></div><span class="divider-text">OR</span><div class="divider-line"></div></div>
+      <button class="demo-dashed" onclick="doDemo()">
+        Use Demo Account<br/>
+        <span style="font-size:12px;color:var(--muted);font-weight:400;">Pre-loaded with sample data</span>
+      </button>
+      <p style="text-align:center;margin-top:20px;color:var(--muted);font-size:14px;font-family:var(--font-body);">
+        Don't have an account? <a href="#" onclick="goScreen('register');return false;" style="color:var(--teal);font-weight:600;">Register here</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 3: REGISTER
+═══════════════════════════════════════════ -->
+<section id="screen-register" class="screen">
+  <nav class="top-nav">
+    <button class="back-btn" onclick="goScreen('login')" aria-label="Back to login">← Back</button>
+    <span class="brand">KOISK</span>
+    <div style="width:60px"></div>
+  </nav>
+  <div class="login-center">
+    <div class="login-box anim-fade-up op0">
+      <div style="text-align:center;margin-bottom:28px;">
+        <div class="auth-icon-wrap" style="background:rgba(0,201,167,.12);">✨</div>
+        <h1 style="font-size:28px;margin-bottom:6px;">Create Account</h1>
+        <p style="color:var(--muted);font-size:15px;font-family:var(--font-body);">Register to access all civic services</p>
+      </div>
+      <div class="space-y4">
+        <div><label class="input-label">Full Name</label><input class="input-field" type="text" placeholder="As per Aadhaar card"/></div>
+        <div><label class="input-label">Phone Number</label><input class="input-field" type="tel" inputmode="numeric" placeholder="10-digit mobile number" maxlength="10"/></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div><label class="input-label">PIN</label><input class="input-field" type="password" inputmode="numeric" placeholder="••••" maxlength="4" style="letter-spacing:.4em;text-align:center;font-size:20px;"/></div>
+          <div><label class="input-label">Confirm PIN</label><input class="input-field" type="password" inputmode="numeric" placeholder="••••" maxlength="4" style="letter-spacing:.4em;text-align:center;font-size:20px;"/></div>
+        </div>
+        <div><label class="input-label">Consumer ID (optional)</label><input class="input-field" type="text" placeholder="Electricity / Water / Gas consumer number"/></div>
+        <button class="btn-primary" onclick="doDemo()">Create Account</button>
+      </div>
+      <p style="text-align:center;margin-top:20px;color:var(--muted);font-size:14px;font-family:var(--font-body);">
+        Already registered? <a href="#" onclick="goScreen('login');return false;" style="color:var(--teal);font-weight:600;">Sign in</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 4: DASHBOARD
+═══════════════════════════════════════════ -->
+<section id="screen-dashboard" class="screen">
+  <nav class="top-nav">
+    <div>
+      <p class="greeting-sub" id="dash-greeting">Good morning,</p>
+      <p class="greeting-name" id="dash-name">Rajesh Kumar</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="badge badge-warning" id="demo-badge" style="display:none;">DEMO</span>
+      <button class="back-btn" onclick="doLogout()" aria-label="Logout">↩ Logout</button>
+    </div>
+  </nav>
+  <div class="dash-body">
+    <section style="margin-bottom:28px;">
+      <p class="section-title anim-fade-up op0 d1">🏢 Services</p>
+      <div class="service-grid" id="service-grid"><!-- JS renders --></div>
+    </section>
+    <section>
+      <p class="section-title anim-fade-up op0 d3">📋 Recent Activity</p>
+      <div id="activity-list"></div>
+    </section>
+    <div style="margin-top:8px;" class="anim-fade-up op0 d5" id="consumer-chip"></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 5: SERVICE SCREEN (dynamic)
+═══════════════════════════════════════════ -->
+<section id="screen-service" class="screen">
+  <nav class="top-nav">
+    <button class="back-btn" onclick="goScreen('dashboard')" aria-label="Back to dashboard">← Back</button>
+    <span class="brand">KOISK</span>
+    <div style="width:60px"></div>
+  </nav>
+  <div id="dept-hero" class="dept-hero">
+    <div class="dept-hero-inner anim-fade-up op0">
+      <div class="dept-icon-lg" id="dept-icon">⚡</div>
+      <div>
+        <h1 class="dept-title" id="dept-title">Electricity Services</h1>
+        <p class="dept-sub">Select a service below</p>
+      </div>
+    </div>
+  </div>
+  <div class="tile-grid" id="service-tile-grid"><!-- JS renders --></div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 6: PAYMENT FLOW (modal overlay)
+═══════════════════════════════════════════ -->
+<div id="payment-modal" class="modal-bg" style="display:none;" role="dialog" aria-modal="true" aria-label="Pay Bill">
+  <div class="modal-box" id="payment-box"><!-- JS renders steps --></div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 7: SERVICE FORM MODAL
+═══════════════════════════════════════════ -->
+<div id="form-modal" class="modal-bg" style="display:none;" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="form-header">
+      <div class="form-icon" id="form-icon">🔌</div>
+      <div>
+        <h2 style="font-size:18px;margin-bottom:2px;" id="form-title">New Connection</h2>
+        <p style="font-size:12px;color:var(--muted);font-family:var(--font-body);">Fill in the details below</p>
+      </div>
+      <button class="close-btn" onclick="closeFormModal()" aria-label="Close">✕</button>
+    </div>
+    <div id="form-fields" class="space-y4"><!-- JS renders --></div>
+    <div id="form-result" style="display:none;text-align:center;padding:20px 0;" class="anim-bounce op0">
+      <div style="width:64px;height:64px;background:#ecfdf5;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 14px;">✅</div>
+      <h2 style="font-size:20px;margin-bottom:6px;">Request Submitted!</h2>
+      <p style="color:var(--muted);font-family:var(--font-body);font-size:14px;margin-bottom:14px;">Your request has been received and is being processed.</p>
+      <div style="background:var(--surface);border-radius:var(--r-lg);padding:14px;margin-bottom:20px;">
+        <p style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">Reference Number</p>
+        <p style="font-family:var(--font-mono);font-weight:600;color:var(--navy);font-size:16px;" id="form-ref">REQ-2026-1234</p>
+      </div>
+      <button class="btn-primary" onclick="closeFormModal()">Back to Services</button>
+    </div>
+    <div class="btn-row" id="form-actions" style="margin-top:20px;">
+      <button class="btn-secondary" onclick="closeFormModal()">Cancel</button>
+      <button class="btn-primary flex2" onclick="submitForm()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     RECEIPT SCREEN
+═══════════════════════════════════════════ -->
+<section id="screen-receipt" class="screen">
+  <nav class="top-nav">
+    <button class="back-btn" onclick="goScreen('dashboard')" aria-label="Back to dashboard">← Dashboard</button>
+    <span class="brand">KOISK</span>
+    <div style="width:60px"></div>
+  </nav>
+  <div class="receipt-wrap">
+    <div class="receipt-card anim-bounce op0">
+      <div style="margin-bottom:24px;">
+        <div style="width:64px;height:64px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 12px;">✅</div>
+        <h1 style="font-size:22px;color:#166534;">Payment Successful</h1>
+        <p style="color:var(--muted);font-size:14px;margin-top:6px;font-family:var(--font-body);">KOISK — Utility Services</p>
+      </div>
+      <div class="receipt-ref">
+        <p style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Reference Number</p>
+        <p style="font-family:var(--font-mono);font-weight:700;color:#166534;font-size:20px;" id="receipt-ref">TXN-2026-8821</p>
+      </div>
+      <div class="receipt-table">
+        <div class="receipt-row"><span style="color:var(--muted)">Department</span><span style="font-weight:600;" id="receipt-dept">⚡ Electricity</span></div>
+        <div class="receipt-row"><span style="color:var(--muted)">Amount Paid</span><span style="font-family:var(--font-display);font-weight:800;color:var(--teal);font-size:18px;" id="receipt-amount">₹1,240</span></div>
+        <div class="receipt-row"><span style="color:var(--muted)">Method</span><span style="font-weight:600;" id="receipt-method">UPI</span></div>
+        <div class="receipt-row"><span style="color:var(--muted)">Consumer No.</span><span style="font-weight:600;">KA-ELEC-204817</span></div>
+        <div class="receipt-row"><span style="color:var(--muted)">Date & Time</span><span style="font-weight:600;" id="receipt-date">—</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="btn-secondary" onclick="window.print()">🖨️ Print Receipt</button>
+        <button class="btn-primary" onclick="goScreen('dashboard')">← Back to Dashboard</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     IDLE TIMEOUT OVERLAY
+═══════════════════════════════════════════ -->
+<div id="idle-overlay" role="dialog" aria-modal="true" aria-live="assertive" aria-label="Session expiring soon">
+  <div class="idle-box">
+    <div class="idle-count calm" id="idle-count">30</div>
+    <h2 style="font-size:22px;margin-bottom:8px;">Session Expiring</h2>
+    <p style="color:var(--muted);font-family:var(--font-body);font-size:15px;line-height:1.6;margin-bottom:28px;">Your session will end in <strong id="idle-seconds" style="color:var(--amber);">30 seconds</strong> due to inactivity.</p>
+    <button class="btn-primary" onclick="resetIdle()" autofocus>Continue Session</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ON-SCREEN KEYBOARD
+═══════════════════════════════════════════ -->
+<div id="keyboard" role="dialog" aria-label="On-screen keyboard" aria-modal="false">
+  <div id="kb-lower"></div>
+  <div id="kb-upper" style="display:none;"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PPT DEMO NAV BAR
+═══════════════════════════════════════════ -->
+<button id="demo-bar-toggle" onclick="toggleDemoBar()" title="Toggle demo navigation" aria-label="Toggle demo navigation">⚡</button>
+<div id="demo-bar" style="display:none;">
+  <span style="color:rgba(255,255,255,.4);font-size:10px;font-family:var(--font-display);letter-spacing:.05em;margin-right:4px;">JUMP TO →</span>
+  <button class="demo-btn active" onclick="jumpTo('language')">🌐 Language</button>
+  <button class="demo-btn" onclick="jumpTo('login')">🔐 Login</button>
+  <button class="demo-btn" onclick="jumpTo('register')">✨ Register</button>
+  <button class="demo-btn" onclick="jumpToDemo()">📊 Dashboard</button>
+  <button class="demo-btn" onclick="jumpToService('electricity')">⚡ Electricity</button>
+  <button class="demo-btn" onclick="jumpToService('water')">💧 Water</button>
+  <button class="demo-btn" onclick="jumpToService('gas')">🔥 Gas</button>
+  <button class="demo-btn" onclick="jumpToService('municipal')">🏛️ Municipal</button>
+  <button class="demo-btn" onclick="openPayment('electricity')">💳 Payment</button>
+  <button class="demo-btn" onclick="jumpToReceipt()">🧾 Receipt</button>
+  <button class="demo-btn" onclick="showIdle()">⏱️ Idle Timeout</button>
+  <button class="demo-btn" onclick="toggleKeyboard()">⌨️ Keyboard</button>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   DATA
+═══════════════════════════════════════ */
+const LANGS = [
+  { code:'en', name:'English',  native:'English',  flag:'🇬🇧' },
+  { code:'hi', name:'Hindi',    native:'हिन्दी',    flag:'🇮🇳' },
+  { code:'od', name:'Odia',     native:'ଓଡ଼ିଆ',    flag:'🇮🇳' },
+  { code:'te', name:'Telugu',   native:'తెలుగు',   flag:'🇮🇳' },
+  { code:'ta', name:'Tamil',    native:'தமிழ்',    flag:'🇮🇳' },
+  { code:'kn', name:'Kannada',  native:'ಕನ್ನಡ',    flag:'🇮🇳' },
+  { code:'mr', name:'Marathi',  native:'मराठी',    flag:'🇮🇳' },
+  { code:'ma', name:'Manipuri', native:'ꯃꯅꯤꯄꯨꯔꯤ',  flag:'🇮🇳' },
+];
+
+const SERVICES = [
+  { key:'electricity', icon:'⚡', name:'Electricity', sub:'Pay bill · New connection',
+    grad:['#FBBF24','#F59E0B'],
+    tiles:[
+      { action:'pay_bill',  icon:'💳', label:'Pay Bill',         sub:'Pay your electricity bill'    },
+      { action:'new_conn',  icon:'🔌', label:'New Connection',   sub:'Apply for new electricity'    },
+      { action:'meter',     icon:'🔧', label:'Meter Change',     sub:'Request meter replacement'    },
+      { action:'transfer',  icon:'📋', label:'Service Transfer', sub:'Transfer to another person'   },
+    ],
+    gradient:'background:linear-gradient(135deg,#f59e0b,#ea580c)' },
+  { key:'water', icon:'💧', name:'Water', sub:'Pay bill · Report leak',
+    grad:['#60A5FA','#06B6D4'],
+    tiles:[
+      { action:'pay_bill',  icon:'💳', label:'Pay Bill',        sub:'Pay your water bill'           },
+      { action:'new_conn',  icon:'🔗', label:'New Connection', sub:'Apply for new water supply'     },
+      { action:'leak',      icon:'🚰', label:'Report Leak',    sub:'Report a water leak'            },
+    ],
+    gradient:'background:linear-gradient(135deg,#3b82f6,#06b6d4)' },
+  { key:'gas', icon:'🔥', name:'Gas', sub:'Pay bill · Safety complaint',
+    grad:['#FB923C','#EF4444'],
+    tiles:[
+      { action:'pay_bill',  icon:'💳', label:'Pay Bill',          sub:'Pay your gas bill'            },
+      { action:'new_conn',  icon:'🔗', label:'New Connection',    sub:'Apply for new gas connection' },
+      { action:'safety',    icon:'🚨', label:'Safety Complaint',  sub:'Report gas leak or hazard'    },
+    ],
+    gradient:'background:linear-gradient(135deg,#f97316,#ef4444)' },
+  { key:'municipal', icon:'🏛️', name:'Municipal', sub:'Property tax · Certificates',
+    grad:['#34D399','#10B981'],
+    tiles:[
+      { action:'pay_bill',    icon:'🏛️', label:'Property Tax',       sub:'Pay municipal property tax'     },
+      { action:'trade_lic',   icon:'📜', label:'Trade Licence',      sub:'New or renew trade licence'     },
+      { action:'birth_cert',  icon:'👶', label:'Birth Certificate',  sub:'Apply for birth certificate'    },
+      { action:'death_cert',  icon:'📄', label:'Death Certificate',  sub:'Apply for death certificate'    },
+      { action:'building',    icon:'🏗️', label:'Building Plan',      sub:'Submit building plan approval'  },
+      { action:'complaint',   icon:'🗑️', label:'Complaint',          sub:'Report sanitation issue'        },
+    ],
+    gradient:'background:linear-gradient(135deg,#10b981,#0f766e)' },
+];
+
+const ACTIVITY = [
+  { type:'Electricity Pay Bill', ref:'KA-ELEC-20481', date:'10 Mar 2026', amount:1240,  status:'completed' },
+  { type:'Water New Connection', ref:'WTR-2026-0098', date:'05 Mar 2026', amount:null,  status:'processing'},
+  { type:'Municipal Property Tax',ref:'MUN-2026-445', date:'28 Feb 2026', amount:3200,  status:'completed' },
+  { type:'Gas Pay Bill',         ref:'GAS-2026-113',  date:'20 Feb 2026', amount:580,   status:'completed' },
+];
+
+const STATUS_BADGE = { completed:'badge-success', processing:'badge-warning', approved:'badge-info', pending:'badge-muted', submitted:'badge-info' };
+
+let currentUser = null;
+let currentLang = 'en';
+let currentDept = null;
+let idleTimer = null, idleWarnTimer = null, idleCountInterval = null;
+let idleRemaining = 30;
+let demoBarVisible = false;
+let kbShifted = false;
+let activeKbInput = null;
+
+/* ═══════════════════════════════════════
+   LANGUAGE SCREEN
+═══════════════════════════════════════ */
+function renderLangGrid() {
+  const grid = document.getElementById('lang-grid');
+  grid.innerHTML = LANGS.map(l => `
+    <button class="lang-btn ${l.code === currentLang ? 'sel' : 'unsel'} op0 anim-fade-up"
+      style="animation-delay:${LANGS.indexOf(l)*60+200}ms"
+      onclick="selectLang('${l.code}')"
+      aria-pressed="${l.code === currentLang}"
+      aria-label="Select ${l.name}">
+      ${l.code === currentLang ? '<span class="check">✓</span>' : ''}
+      <span class="lang-flag">${l.flag}</span>
+      <span>${l.native}</span>
+      ${l.native !== l.name ? `<span class="lang-sub">${l.name}</span>` : ''}
+    </button>
+  `).join('');
+}
+function selectLang(code) {
+  currentLang = code;
+  document.getElementById('lang-selected-name').textContent = LANGS.find(l=>l.code===code).native;
+  renderLangGrid();
+}
+
+/* ═══════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════ */
+function goScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const screen = document.getElementById('screen-' + id);
+  screen.classList.add('active');
+  // Re-trigger animations
+  screen.querySelectorAll('.op0').forEach(el => {
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = '';
+  });
+  updateDemoBar(id);
+  if (id !== 'dashboard' && id !== 'receipt') { stopIdle(); }
+}
+
+function goLogin()     { goScreen('login'); }
+function doLogout()    { currentUser = null; stopIdle(); goScreen('language'); }
+
+function doLogin() {
+  const phone = document.getElementById('login-phone').value;
+  const pin   = document.getElementById('login-pin').value;
+  if (phone.length === 10 && pin.length === 4) {
+    currentUser = { name:'Rajesh Kumar', phone, isDemo:false, consumerId:'KA-ELEC-204817' };
+    openDashboard();
+  }
+}
+
+function doDemo() {
+  currentUser = { name:'Demo User', phone:'9876543210', isDemo:true, consumerId:'DEMO-204817' };
+  openDashboard();
+}
+
+function openDashboard() {
+  renderDashboard();
+  goScreen('dashboard');
+  startIdle();
+}
+
+function checkLogin() {
+  const phone = document.getElementById('login-phone').value;
+  const pin   = document.getElementById('login-pin').value;
+  document.getElementById('login-btn').disabled = !(phone.length === 10 && pin.length === 4);
+}
+
+/* ═══════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════ */
+function renderDashboard() {
+  if (!currentUser) return;
+  const hr = new Date().getHours();
+  const greeting = hr < 12 ? 'Good morning,' : hr < 17 ? 'Good afternoon,' : 'Good evening,';
+  document.getElementById('dash-greeting').textContent = greeting;
+  document.getElementById('dash-name').textContent = currentUser.name.split(' ')[0];
+  document.getElementById('demo-badge').style.display = currentUser.isDemo ? 'inline-flex' : 'none';
+
+  // Service tiles
+  const grid = document.getElementById('service-grid');
+  grid.innerHTML = SERVICES.map((svc, i) => `
+    <button class="card-hover anim-fade-up op0 d${Math.min(i+2,6)}"
+      onclick="openService('${svc.key}')"
+      aria-label="${svc.name}"
+      style="padding:20px;">
+      <div class="svc-icon" style="--c1:${svc.grad[0]};--c2:${svc.grad[1]};">${svc.icon}</div>
+      <div class="svc-name">${svc.name}</div>
+      <div class="svc-sub">${svc.sub}</div>
+    </button>
+  `).join('');
+
+  // Activity
+  const list = document.getElementById('activity-list');
+  list.innerHTML = ACTIVITY.map((a, i) => `
+    <div class="activity-item anim-slide-in op0" style="animation-delay:${i*80+300}ms">
+      <div style="flex:1;min-width:0;">
+        <div class="activity-title">${a.type}</div>
+        <div class="activity-sub">${a.ref} · ${a.date}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+        <span class="badge ${STATUS_BADGE[a.status]||'badge-muted'}">${a.status.charAt(0).toUpperCase()+a.status.slice(1)}</span>
+        ${a.amount ? `<div class="activity-amount">₹${a.amount.toLocaleString('en-IN')}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  // Consumer chip
+  const chip = document.getElementById('consumer-chip');
+  if (currentUser.consumerId) {
+    chip.innerHTML = `
+      <div class="consumer-chip">
+        <span style="font-size:24px;">🪪</span>
+        <div>
+          <p style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Consumer ID</p>
+          <p style="font-family:var(--font-mono);font-weight:600;color:var(--navy);font-size:15px;">${currentUser.consumerId}</p>
+        </div>
+      </div>`;
+  }
+}
+
+/* ═══════════════════════════════════════
+   SERVICE SCREENS
+═══════════════════════════════════════ */
+function openService(key) {
+  currentDept = SERVICES.find(s => s.key === key);
+  if (!currentDept) return;
+  document.getElementById('dept-icon').textContent = currentDept.icon;
+  document.getElementById('dept-title').textContent = currentDept.name + ' Services';
+  document.getElementById('dept-hero').setAttribute('style', currentDept.gradient + ';padding:28px 24px;');
+  renderServiceTiles();
+  goScreen('service');
+}
+
+function renderServiceTiles() {
+  const grid = document.getElementById('service-tile-grid');
+  grid.innerHTML = currentDept.tiles.map((tile, i) => `
+    <button class="card-hover anim-fade-up op0"
+      onclick="handleTileClick('${tile.action}')"
+      aria-label="${tile.label}"
+      style="animation-delay:${i*70}ms;animation-fill-mode:forwards;">
+      <div class="tile-icon">${tile.icon}</div>
+      <div style="font-family:var(--font-display);font-weight:600;color:var(--navy);font-size:14px;">${tile.label}</div>
+      <div style="font-size:12px;color:var(--muted);font-family:var(--font-body);margin-top:3px;">${tile.sub}</div>
+    </button>
+  `).join('');
+}
+
+function handleTileClick(action) {
+  if (action === 'pay_bill') {
+    openPayment(currentDept.key);
+  } else {
+    openFormModal(action);
+  }
+}
+
+/* ═══════════════════════════════════════
+   PAYMENT FLOW
+═══════════════════════════════════════ */
+let payStep = 'summary';
+let payMethod = 'upi';
+
+function openPayment(deptKey) {
+  currentDept = SERVICES.find(s => s.key === deptKey) || currentDept || SERVICES[0];
+  payStep   = 'summary';
+  payMethod = 'upi';
+  renderPayStep();
+  document.getElementById('payment-modal').style.display = 'flex';
+  requestAnimationFrame(() => document.querySelector('#payment-modal .modal-box')?.focus?.());
+}
+function closePayment() {
+  document.getElementById('payment-modal').style.display = 'none';
+}
+
+const BILLS = { electricity:{consumerNo:'KA-ELEC-204817', amount:1240, dept:'electricity'}, water:{consumerNo:'WTR-2204-001', amount:380, dept:'water'}, gas:{consumerNo:'GAS-2026-113', amount:580, dept:'gas'}, municipal:{consumerNo:'MUN-445-B', amount:3200, dept:'municipal'} };
+
+function renderPayStep() {
+  const box  = document.getElementById('payment-box');
+  const bill = BILLS[currentDept?.key] || BILLS.electricity;
+  const fmtINR = n => '₹' + n.toLocaleString('en-IN');
+
+  if (payStep === 'summary') {
+    box.innerHTML = `
+      <div class="step-dots">${renderStepDots(0)}</div>
+      <div class="bill-card anim-fade-up">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+          <span style="font-size:28px;">${currentDept.icon}</span>
+          <div>
+            <h2 style="font-size:18px;color:#0c4a6e;">${currentDept.name} Bill</h2>
+            <p style="font-size:13px;color:#0369a1;margin-top:2px;">Consumer: ${bill.consumerNo}</p>
+          </div>
+        </div>
+        <div class="bill-row"><span class="lbl">Billing Period</span><span class="val">February 2026</span></div>
+        <div class="bill-row"><span class="lbl">Due Date</span><span class="val">20 Mar 2026</span></div>
+        <hr class="bill-divider"/>
+        <div class="bill-amount-row">
+          <span class="bill-amount-lbl">Amount Due</span>
+          <span class="bill-amount-val">${fmtINR(bill.amount)}</span>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="closePayment()">Cancel</button>
+        <button class="btn-primary flex2" onclick="payStep='method';renderPayStep()">Continue to Payment →</button>
+      </div>`;
+  } else if (payStep === 'method') {
+    const methods = [
+      { id:'upi',  icon:'📲', label:'UPI',         sub:'PhonePe, GPay, Paytm' },
+      { id:'card', icon:'💳', label:'Card',        sub:'Debit / Credit card'  },
+      { id:'netb', icon:'🏦', label:'Net Banking', sub:'All major banks'       },
+    ];
+    box.innerHTML = `
+      <div class="step-dots">${renderStepDots(1)}</div>
+      <div class="anim-fade-up">
+        <h2 style="font-size:18px;text-align:center;margin-bottom:16px;">Choose Payment Method</h2>
+        ${methods.map(m => `
+          <div class="method-card ${payMethod===m.id?'active':''}" onclick="payMethod='${m.id}';renderPayStep()">
+            <span style="font-size:26px;">${m.icon}</span>
+            <div style="flex:1;">
+              <div style="font-family:var(--font-display);font-weight:700;color:var(--navy);font-size:15px;">${m.label}</div>
+              <div style="font-size:12px;color:var(--muted);">${m.sub}</div>
+            </div>
+            <div class="method-radio"><div class="method-radio-dot" ${payMethod===m.id?'':'style="display:none"'}></div></div>
+          </div>`).join('')}
+        ${payMethod === 'upi' ? `<div style="margin-top:8px;"><label class="input-label">UPI ID</label><input class="input-field" placeholder="e.g. user@upi" type="text"/></div>` : ''}
+        ${payMethod === 'card' ? `
+          <div style="margin-top:8px;" class="space-y4">
+            <div><label class="input-label">Card Number</label><input class="input-field" placeholder="•••• •••• •••• ••••" maxlength="19"/></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div><label class="input-label">Expiry</label><input class="input-field" placeholder="MM/YY"/></div>
+              <div><label class="input-label">CVV</label><input class="input-field" type="password" placeholder="•••" maxlength="3"/></div>
+            </div>
+          </div>` : ''}
+        <div class="btn-row" style="margin-top:16px;">
+          <button class="btn-secondary" onclick="payStep='summary';renderPayStep()">← Back</button>
+          <button class="btn-primary flex2" onclick="payStep='processing';renderPayStep();simulatePay()">Pay ${fmtINR(bill.amount)} →</button>
+        </div>
+      </div>`;
+  } else if (payStep === 'processing') {
+    box.innerHTML = `
+      <div class="processing-wrap" role="status" aria-live="polite">
+        <div class="spinner anim-spin"></div>
+        <p style="font-family:var(--font-display);font-weight:600;color:var(--navy);font-size:17px;">Processing your payment…</p>
+        <p style="color:var(--muted);font-size:14px;">Please do not close this window</p>
+      </div>`;
+  }
+}
+
+function renderStepDots(active) {
+  return ['Summary','Method','Done'].map((label, i) => {
+    const cls = i < active ? 'done' : i === active ? 'active' : 'future';
+    return `
+      <div style="display:flex;align-items:center;gap:6px;${i<2?'flex:1':''}">
+        <div class="step-dot-wrap">
+          <div class="step-dot ${cls}">${i < active ? '✓' : i+1}</div>
+          <span class="step-label ${cls}">${label}</span>
+        </div>
+        ${i < 2 ? `<div class="step-line ${i<active?'done':'future'}"></div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+async function simulatePay() {
+  await new Promise(r => setTimeout(r, 2200));
+  closePayment();
+  showReceipt();
+}
+
+function showReceipt() {
+  const bill = BILLS[currentDept?.key] || BILLS.electricity;
+  document.getElementById('receipt-ref').textContent   = 'TXN-2026-' + Math.floor(Math.random()*9000+1000);
+  document.getElementById('receipt-dept').textContent  = currentDept.icon + ' ' + currentDept.name;
+  document.getElementById('receipt-amount').textContent= '₹' + bill.amount.toLocaleString('en-IN');
+  document.getElementById('receipt-method').textContent= payMethod.toUpperCase();
+  document.getElementById('receipt-date').textContent  = new Date().toLocaleString('en-IN', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
+  goScreen('receipt');
+}
+
+/* ═══════════════════════════════════════
+   SERVICE FORM MODAL
+═══════════════════════════════════════ */
+const FORM_CONFIGS = {
+  new_conn: { icon:'🔌', title:'New Connection', fields:[
+    {label:'Full Name', type:'text', placeholder:'e.g. Rajesh Kumar'},
+    {label:'Mobile Number', type:'tel', placeholder:'10-digit number'},
+    {label:'Address', type:'textarea', placeholder:'Full address with pin code'},
+    {label:'ID Proof', type:'select', options:['Aadhaar Card','PAN Card','Voter ID']},
+  ]},
+  meter: { icon:'🔧', title:'Meter Change Request', fields:[
+    {label:'Consumer Number', type:'text', placeholder:'e.g. KA-ELEC-204817'},
+    {label:'Reason', type:'select', options:['Faulty Meter','Physically Damaged','Smart Meter Upgrade']},
+    {label:'Additional Details', type:'textarea', placeholder:'Describe the issue'},
+  ]},
+  transfer: { icon:'📋', title:'Service Transfer', fields:[
+    {label:'Consumer Number', type:'text', placeholder:'e.g. KA-ELEC-204817'},
+    {label:'Current Account Holder', type:'text', placeholder:'Full name'},
+    {label:'New Account Holder', type:'text', placeholder:'Full name'},
+    {label:'Transfer Reason', type:'select', options:['Property Sale','Inheritance','Other']},
+  ]},
+  leak: { icon:'🚰', title:'Report Water Leak', fields:[
+    {label:'Consumer Number', type:'text', placeholder:'e.g. WTR-2204-001'},
+    {label:'Severity', type:'select', options:['🔴 High — broken pipe','🟡 Medium — steady leak','🟢 Low — slow drip']},
+    {label:'Location', type:'text', placeholder:'Where the issue is'},
+    {label:'Description', type:'textarea', placeholder:'Describe the problem'},
+  ]},
+  safety: { icon:'🚨', title:'Gas Safety Complaint', fields:[
+    {label:'Consumer Number', type:'text', placeholder:'e.g. GAS-2026-113'},
+    {label:'Issue Type', type:'select', options:['🔴 Gas Leak — Immediate Danger','🟡 Unusual Smell','🟡 Low/No Gas Pressure','🟢 Meter Issue']},
+    {label:'Location', type:'text', placeholder:'Where the issue is'},
+    {label:'Callback Number', type:'tel', placeholder:'10-digit number'},
+  ]},
+  trade_lic: { icon:'📜', title:'Trade Licence', fields:[
+    {label:'Business Name', type:'text', placeholder:'Name of business'},
+    {label:'Owner Name', type:'text', placeholder:'Full name'},
+    {label:'Application Type', type:'select', options:['New Licence','Renewal']},
+    {label:'Mobile Number', type:'tel', placeholder:'10-digit number'},
+  ]},
+  birth_cert: { icon:'👶', title:'Birth Certificate', fields:[
+    {label:"Child's Full Name", type:'text', placeholder:'As to appear on certificate'},
+    {label:'Date of Birth', type:'date'},
+    {label:"Father's Name", type:'text', placeholder:'Full name'},
+    {label:"Mother's Name", type:'text', placeholder:'Full name'},
+    {label:'Mobile Number', type:'tel', placeholder:'10-digit number'},
+  ]},
+  death_cert: { icon:'📄', title:'Death Certificate', fields:[
+    {label:'Name of Deceased', type:'text', placeholder:'Full name'},
+    {label:'Date of Death', type:'date'},
+    {label:'Applicant Name', type:'text', placeholder:'Your full name'},
+    {label:'Relation', type:'select', options:['Spouse','Child','Parent','Sibling','Other']},
+    {label:'Mobile Number', type:'tel', placeholder:'10-digit number'},
+  ]},
+  building: { icon:'🏗️', title:'Building Plan Approval', fields:[
+    {label:'Property Owner', type:'text', placeholder:'Full name'},
+    {label:'Plot / Survey Number', type:'text', placeholder:'e.g. Plot 45B'},
+    {label:'Plan Type', type:'select', options:['Residential','Commercial','Mixed Use','Renovation']},
+    {label:'Mobile Number', type:'tel', placeholder:'10-digit number'},
+  ]},
+  complaint: { icon:'🗑️', title:'Sanitation Complaint', fields:[
+    {label:'House / Consumer No.', type:'text', placeholder:'Your municipal number'},
+    {label:'Complaint Type', type:'select', options:['Garbage not collected','Drainage/Sewage blockage','Road damage','Stray animals','Other']},
+    {label:'Location', type:'text', placeholder:'Where the issue is'},
+    {label:'Description', type:'textarea', placeholder:'Describe the problem'},
+  ]},
+  grievance: { icon:'📣', title:'General Grievance', fields:[
+    {label:'Your Name', type:'text', placeholder:'Full name'},
+    {label:'Subject', type:'text', placeholder:'Brief subject line'},
+    {label:'Department', type:'select', options:['Municipal Office','Water Department','Electricity Dept.','Roads & Transport','Other']},
+    {label:'Details', type:'textarea', placeholder:'Describe your grievance'},
+  ]},
+};
+
+function openFormModal(action) {
+  const cfg = FORM_CONFIGS[action];
+  if (!cfg) return;
+  document.getElementById('form-icon').textContent  = cfg.icon;
+  document.getElementById('form-title').textContent = cfg.title;
+  document.getElementById('form-result').style.display = 'none';
+  document.getElementById('form-result').classList.remove('anim-bounce');
+  document.getElementById('form-actions').style.display = 'flex';
+  const fields = document.getElementById('form-fields');
+  fields.innerHTML = cfg.fields.map(f => `
+    <div>
+      <label class="input-label">${f.label}</label>
+      ${f.type === 'select' ? `
+        <select class="input-field">
+          <option value="">— Select —</option>
+          ${(f.options||[]).map(o=>`<option>${o}</option>`).join('')}
+        </select>` :
+      f.type === 'textarea' ? `
+        <textarea class="input-field" placeholder="${f.placeholder||''}" rows="3" style="resize:none;"></textarea>` :
+      `<input class="input-field" type="${f.type}" placeholder="${f.placeholder||''}"${f.type==='tel'?' inputmode="numeric" maxlength="10"':''}/>`
+      }
+    </div>`).join('');
+  document.getElementById('form-modal').style.display = 'flex';
+}
+
+function closeFormModal() {
+  document.getElementById('form-modal').style.display = 'none';
+}
+
+function submitForm() {
+  document.getElementById('form-actions').style.display = 'none';
+  document.getElementById('form-fields').innerHTML = '';
+  const result = document.getElementById('form-result');
+  document.getElementById('form-ref').textContent = 'REQ-2026-' + Math.floor(Math.random()*9000+1000);
+  result.style.display = 'block';
+  void result.offsetWidth;
+  result.classList.add('anim-bounce');
+  result.style.opacity = '1';
+}
+
+/* ═══════════════════════════════════════
+   IDLE TIMEOUT
+═══════════════════════════════════════ */
+function startIdle() {
+  stopIdle();
+  idleWarnTimer = setTimeout(showIdle, 270000); // 4.5 min
+  document.addEventListener('mousedown', resetIdle, {passive:true});
+  document.addEventListener('touchstart', resetIdle, {passive:true});
+  document.addEventListener('keydown', resetIdle, {passive:true});
+}
+
+function stopIdle() {
+  clearTimeout(idleTimer);
+  clearTimeout(idleWarnTimer);
+  clearInterval(idleCountInterval);
+  document.getElementById('idle-overlay').classList.remove('show');
+  document.removeEventListener('mousedown', resetIdle);
+  document.removeEventListener('touchstart', resetIdle);
+  document.removeEventListener('keydown', resetIdle);
+}
+
+function showIdle() {
+  idleRemaining = 30;
+  const overlay = document.getElementById('idle-overlay');
+  overlay.classList.add('show');
+  updateIdleCount();
+  idleCountInterval = setInterval(() => {
+    idleRemaining--;
+    updateIdleCount();
+    if (idleRemaining <= 0) { stopIdle(); doLogout(); }
+  }, 1000);
+  idleTimer = setTimeout(doLogout, 30000);
+  document.getElementById('idle-overlay').querySelector('button').focus();
+}
+
+function updateIdleCount() {
+  const el = document.getElementById('idle-count');
+  const s  = document.getElementById('idle-seconds');
+  el.textContent = idleRemaining;
+  el.className   = 'idle-count ' + (idleRemaining <= 10 ? 'urgent' : 'calm');
+  s.textContent  = idleRemaining + ' second' + (idleRemaining !== 1 ? 's' : '');
+  s.style.color  = idleRemaining <= 10 ? 'var(--danger)' : 'var(--amber)';
+}
+
+function resetIdle() {
+  stopIdle();
+  if (currentUser) startIdle();
+}
+
+/* ═══════════════════════════════════════
+   ON-SCREEN KEYBOARD
+═══════════════════════════════════════ */
+const KB_LOWER = [
+  ['1','2','3','4','5','6','7','8','9','0'],
+  ['q','w','e','r','t','y','u','i','o','p'],
+  ['a','s','d','f','g','h','j','k','l'],
+  ['z','x','c','v','b','n','m'],
+  ['Shift',' ','@','.','⌫','✕ Clear','▼ Done'],
+];
+const KB_UPPER = [
+  ['1','2','3','4','5','6','7','8','9','0'],
+  ['Q','W','E','R','T','Y','U','I','O','P'],
+  ['A','S','D','F','G','H','J','K','L'],
+  ['Z','X','C','V','B','N','M'],
+  ['Shift',' ','@','.','⌫','✕ Clear','▼ Done'],
+];
+function buildKb(layout, id) {
+  const SPECIAL = ['Shift',' ','@','.','⌫','✕ Clear','▼ Done'];
+  return layout.map(row => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'kb-row';
+    row.forEach(k => {
+      const btn = document.createElement('button');
+      btn.textContent = k === ' ' ? '␣ Space' : k;
+      const isLetter  = !SPECIAL.includes(k);
+      const isSpace   = k === ' ';
+      const isClose   = k === '▼ Done';
+      const isSpecial = SPECIAL.includes(k) && !isLetter;
+      btn.className   = 'kb-key' + (isLetter ? ' kb-letter' : isSpace ? ' kb-space' : isClose ? ' kb-special close' : ' kb-special special');
+      btn.setAttribute('aria-label', k === ' ' ? 'Space' : k);
+      btn.onmousedown = e => e.preventDefault();
+      btn.onclick     = () => kbPress(k);
+      rowDiv.appendChild(btn);
+    });
+    return rowDiv;
+  });
+}
+function renderKb() {
+  const lower = document.getElementById('kb-lower');
+  const upper = document.getElementById('kb-upper');
+  lower.innerHTML = ''; upper.innerHTML = '';
+  buildKb(KB_LOWER, 'kb-lower').forEach(r => lower.appendChild(r));
+  buildKb(KB_UPPER, 'kb-upper').forEach(r => upper.appendChild(r));
+}
+function kbPress(k) {
+  if (k === '▼ Done') { hideKeyboard(); return; }
+  if (k === 'Shift')  { kbShifted = !kbShifted; document.getElementById('kb-lower').style.display = kbShifted ? 'none' : 'block'; document.getElementById('kb-upper').style.display = kbShifted ? 'block' : 'none'; return; }
+  if (!activeKbInput) return;
+  if (k === '⌫') { activeKbInput.value = activeKbInput.value.slice(0,-1); }
+  else if (k === '✕ Clear') { activeKbInput.value = ''; }
+  else { activeKbInput.value += k; if (kbShifted && k.length===1) { kbShifted=false; document.getElementById('kb-lower').style.display='block'; document.getElementById('kb-upper').style.display='none'; } }
+  activeKbInput.dispatchEvent(new Event('input',{bubbles:true}));
+}
+function showKeyboard(inputEl) {
+  activeKbInput = inputEl;
+  document.getElementById('keyboard').classList.add('show');
+}
+function hideKeyboard() {
+  document.getElementById('keyboard').classList.remove('show');
+  activeKbInput = null;
+}
+function toggleKeyboard() {
+  const kb = document.getElementById('keyboard');
+  kb.classList.toggle('show');
+  if (kb.classList.contains('show') && !activeKbInput) {
+    const inputs = document.querySelectorAll('.screen.active input, .modal-bg[style*="flex"] input');
+    if (inputs.length) { activeKbInput = inputs[0]; activeKbInput.focus(); }
+  } else if (!kb.classList.contains('show')) {
+    activeKbInput = null;
+  }
+}
+
+/* ═══════════════════════════════════════
+   PPT DEMO NAV
+═══════════════════════════════════════ */
+function toggleDemoBar() {
+  demoBarVisible = !demoBarVisible;
+  document.getElementById('demo-bar').style.display = demoBarVisible ? 'flex' : 'none';
+}
+function updateDemoBar(activeId) {
+  document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+}
+function jumpTo(id)         { goScreen(id); }
+function jumpToDemo()       { currentUser = {name:'Demo User', phone:'9876543210', isDemo:true, consumerId:'DEMO-204817'}; openDashboard(); }
+function jumpToService(key) { currentUser = currentUser || {name:'Demo User', phone:'9876543210', isDemo:true, consumerId:'DEMO-204817'}; currentDept = SERVICES.find(s=>s.key===key); if (!currentUser) { renderDashboard(); } openService(key); }
+function jumpToReceipt()    { currentDept = currentDept || SERVICES[0]; showReceipt(); }
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+(function init() {
+  renderLangGrid();
+  renderKb();
+  // Kick off screen animations
+  document.querySelectorAll('#screen-language .op0').forEach((el, i) => {
+    setTimeout(() => { el.style.opacity = ''; }, i * 60);
+  });
+  // Wire keyboard to all inputs (demo: show kb on focus)
+  document.addEventListener('focusin', e => {
+    if ((e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') && e.target.type !== 'date') {
+      showKeyboard(e.target);
+    }
+  });
+})();
+</script>
+</body>
+</html>

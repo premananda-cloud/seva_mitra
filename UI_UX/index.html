@@ -1,20 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="KOISK_UI — Smart Civic Utility Kiosk | SUVIDHA 2026" />
-    <title>KOISK | Smart Civic Kiosk</title>
-    <!-- Fonts: Sora (display) + DM Sans (body) + JetBrains Mono -->
+
+    <!-- ── Viewport — kiosk touch optimised ──────────────────────────── -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <!-- ── SEO / description ─────────────────────────────────────────── -->
+    <meta name="description" content="KOISK — Smart Civic Utility Kiosk. Pay bills, request services, and track complaints for Electricity, Water, Gas, and Municipal departments." />
+    <meta name="keywords" content="KOISK, SUVIDHA 2026, C-DAC, civic kiosk, utility bill payment, government services" />
+    <meta name="author" content="SUVIDHA 2026 Team" />
+
+    <!-- ── PWA / Mobile app meta ─────────────────────────────────────── -->
+    <meta name="application-name" content="KOISK" />
+    <meta name="theme-color" content="#0F2044" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="KOISK" />
+
+    <!-- ── Kiosk touch/pointer behaviour ─────────────────────────────── -->
+    <meta name="msapplication-tap-highlight" content="no" />
+    <!-- Prevent long-press context menu on kiosk touchscreens -->
+    <style>
+      * { -webkit-touch-callout: none; }
+      input, textarea, select { -webkit-touch-callout: default; }
+    </style>
+
+    <!-- ── Favicon (inline SVG → no extra file needed) ───────────────── -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230F2044'/><text y='24' x='4' font-size='22'>🏛️</text></svg>" />
+
+    <title>KOISK | Smart Civic Kiosk — SUVIDHA 2026</title>
+
+    <!-- ── Fonts: preconnect first, then stylesheet ───────────────────── -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+
+    <!-- ── Splash / loading screen — prevents white flash on boot ─────── -->
+    <style>
+      /* Body background matches --koisk-surface before React hydrates */
+      html, body { margin: 0; padding: 0; background: #0F2044; }
+
+      #app-splash {
+        position: fixed; inset: 0; z-index: 9999;
+        background: linear-gradient(135deg, #0F2044 0%, #1A3A6B 60%, #0B6E6E 100%);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 16px;
+        transition: opacity .35s ease, visibility .35s ease;
+      }
+      #app-splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+      .splash-logo {
+        display: flex; align-items: center; gap: 14px;
+        animation: splashFadeUp .5s ease forwards;
+      }
+      .splash-icon {
+        width: 56px; height: 56px; border-radius: 16px;
+        background: rgba(0,201,167,.2); border: 1px solid rgba(0,201,167,.4);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 28px;
+      }
+      .splash-wordmark {
+        font-family: 'Sora', sans-serif; font-weight: 800;
+        color: #fff; font-size: 44px; letter-spacing: -1px;
+      }
+      .splash-tagline {
+        font-family: 'DM Sans', sans-serif; color: rgba(0,201,167,.8);
+        font-size: 15px; animation: splashFadeUp .5s .15s ease both;
+      }
+      .splash-dots {
+        display: flex; gap: 8px;
+        animation: splashFadeUp .5s .3s ease both;
+      }
+      .splash-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: rgba(0,201,167,.4);
+        animation: dotPulse 1.2s ease-in-out infinite;
+      }
+      .splash-dot:nth-child(2) { animation-delay: .2s; }
+      .splash-dot:nth-child(3) { animation-delay: .4s; }
+
+      @keyframes splashFadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+      @keyframes dotPulse { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1.1)} }
+    </style>
   </head>
+
   <body>
+    <!-- ── Loading splash (hidden once React mounts) ───────────────────── -->
+    <div id="app-splash" role="status" aria-label="Loading KOISK application">
+      <div class="splash-logo">
+        <div class="splash-icon">🏛️</div>
+        <span class="splash-wordmark">KOISK</span>
+      </div>
+      <p class="splash-tagline">Smart Civic Utility Kiosk · SUVIDHA 2026</p>
+      <div class="splash-dots">
+        <div class="splash-dot"></div>
+        <div class="splash-dot"></div>
+        <div class="splash-dot"></div>
+      </div>
+    </div>
+
+    <!-- ── React root ──────────────────────────────────────────────────── -->
     <div id="root"></div>
+
+    <!-- ── Entry point ────────────────────────────────────────────────── -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
