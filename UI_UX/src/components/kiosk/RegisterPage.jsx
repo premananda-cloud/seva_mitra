@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from './authStore'
+import { useAuthStore } from '@/modules/auth/authStore'
 
 export default function RegisterPage() {
   const { t }    = useTranslation()
@@ -15,7 +15,7 @@ export default function RegisterPage() {
   const set = (field) => (e) => {
     clearError()
     let val = e.target.value
-    if (field === 'phone')                          val = val.replace(/\D/g, '').slice(0, 10)
+    if (field === 'phone')      val = val.replace(/\D/g, '').slice(0, 10)
     if (field === 'pin' || field === 'pinConfirm') val = val.replace(/\D/g, '').slice(0, 4)
     setForm(f => ({ ...f, [field]: val }))
   }
@@ -31,18 +31,14 @@ export default function RegisterPage() {
 
   return (
     <div className="screen bg-koisk-surface">
-      {/* Top bar — FIX (High): controls meet min touch target + contrast */}
+      {/* Top bar */}
       <div className="bg-koisk-navy px-6 py-4 flex items-center justify-between">
-        <Link
-          to="/login"
-          className="flex items-center gap-2 text-white hover:text-koisk-accent transition-colors min-h-[44px] min-w-[44px] font-body text-sm"
-          aria-label={t('nav.back')}
-        >
+        <Link to="/login" className="flex items-center gap-2 text-white/70 hover:text-white transition-colors min-h-[44px] px-2 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-koisk-accent">
           <span aria-hidden="true">←</span>
-          <span>{t('nav.back')}</span>
+          <span className="font-body text-sm">{t('nav.back')}</span>
         </Link>
         <span className="font-display font-bold text-white text-lg">KOISK</span>
-        <div className="min-w-[44px]" />
+        <div />
       </div>
 
       <div className="flex-1 flex items-center justify-center px-6 py-8">
@@ -51,7 +47,7 @@ export default function RegisterPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-koisk-accent/10 rounded-3xl flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl" aria-hidden="true">✨</span>
+              <span className="text-3xl">✨</span>
             </div>
             <h1 className="heading-display text-3xl mb-1">{t('auth.register_title')}</h1>
             <p className="text-koisk-muted font-body">{t('auth.register_subtitle')}</p>
@@ -59,12 +55,12 @@ export default function RegisterPage() {
 
           {/* Error */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl animate-fade-in" role="alert">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl animate-fade-in">
               <p className="text-red-700 font-body text-sm text-center">{t(error)}</p>
             </div>
           )}
 
-          {/* Form — FIX (High): every label has htmlFor matching its input's id */}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="reg-name" className="input-label">{t('auth.name')}</label>
@@ -76,6 +72,7 @@ export default function RegisterPage() {
                 placeholder={t('auth.name_placeholder')}
                 className="input-field"
                 autoCapitalize="words"
+                autoComplete="name"
                 required
                 aria-required="true"
               />
@@ -91,6 +88,7 @@ export default function RegisterPage() {
                 onChange={set('phone')}
                 placeholder={t('auth.phone_placeholder')}
                 className="input-field"
+                autoComplete="tel"
                 required
                 aria-required="true"
               />
@@ -129,12 +127,12 @@ export default function RegisterPage() {
                   maxLength={4}
                   required
                   aria-required="true"
-                  aria-invalid={form.pinConfirm && form.pin !== form.pinConfirm ? 'true' : undefined}
                   aria-describedby={form.pinConfirm && form.pin !== form.pinConfirm ? 'pin-mismatch' : undefined}
                 />
               </div>
             </div>
 
+            {/* PIN mismatch inline hint */}
             {form.pinConfirm && form.pin !== form.pinConfirm && (
               <p id="pin-mismatch" role="alert" className="text-red-500 text-xs font-body -mt-2">
                 {t('auth.errors.pin_mismatch')}
@@ -142,14 +140,15 @@ export default function RegisterPage() {
             )}
 
             <div>
-              <label htmlFor="reg-consumer-id" className="input-label">{t('auth.consumer_id')}</label>
+              <label htmlFor="reg-consumer" className="input-label">{t('auth.consumer_id')}</label>
               <input
-                id="reg-consumer-id"
+                id="reg-consumer"
                 type="text"
                 value={form.consumerId}
                 onChange={set('consumerId')}
                 placeholder={t('auth.consumer_id_placeholder')}
                 className="input-field"
+                autoComplete="off"
               />
             </div>
 
@@ -170,7 +169,7 @@ export default function RegisterPage() {
           {/* Login link */}
           <p className="text-center mt-6 text-koisk-muted font-body">
             {t('auth.have_account')}{' '}
-            <Link to="/login" className="text-koisk-teal font-semibold hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-koisk-teal rounded">
+            <Link to="/login" className="text-koisk-teal font-semibold hover:underline">
               {t('auth.login_link')}
             </Link>
           </p>

@@ -348,7 +348,7 @@ export default function PaymentFlow({ billId, dept, onClose }) {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="card max-w-lg mx-auto p-6 min-h-[360px]">
+    <div className="card max-w-lg mx-auto p-6 min-h-[360px] max-h-[90vh] overflow-y-auto w-full">
       <OfflineBanner />
 
       {confirmingCancel ? (

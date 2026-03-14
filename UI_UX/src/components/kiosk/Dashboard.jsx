@@ -8,10 +8,10 @@ import { useIdleTimeout } from '../../hooks/useIdleTimeout'
 import IdleOverlay from './IdleOverlay'
 
 const SERVICE_TILES = [
-  { key: 'electricity', icon: '⚡', color: 'from-amber-400 to-yellow-500',  textColor: 'text-amber-900' },
-  { key: 'gas',         icon: '🔥', color: 'from-orange-400 to-red-500',    textColor: 'text-red-900'   },
-  { key: 'water',       icon: '💧', color: 'from-blue-400 to-cyan-500',     textColor: 'text-blue-900'  },
-  { key: 'municipal',   icon: '🏛️', color: 'from-emerald-400 to-green-500', textColor: 'text-green-900' },
+  { key: 'electricity', icon: '⚡', color: 'from-amber-400 to-yellow-500',  textColor: 'text-amber-900', sub: 'Pay bill · New connection' },
+  { key: 'gas',         icon: '🔥', color: 'from-orange-400 to-red-500',    textColor: 'text-red-900',   sub: 'Pay bill · New connection' },
+  { key: 'water',       icon: '💧', color: 'from-blue-400 to-cyan-500',     textColor: 'text-blue-900',  sub: 'Pay bill · Report leak'    },
+  { key: 'municipal',   icon: '🏛️', color: 'from-emerald-400 to-green-500', textColor: 'text-green-900', sub: 'Property tax · Certificates' },
 ]
 
 const STATUS_CONFIG = {
@@ -76,9 +76,10 @@ export default function Dashboard() {
             )}
             <button
               onClick={handleLogout}
-              className="text-white/60 hover:text-white font-body text-sm transition-colors flex items-center gap-1"
+              className="text-white/60 hover:text-white font-body text-sm transition-colors flex items-center gap-1 min-h-[44px] px-3 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-koisk-accent"
+              aria-label="Logout"
             >
-              <span>↩</span> {t('nav.logout')}
+              <span aria-hidden="true">↩</span> {t('nav.logout')}
             </button>
           </div>
         </div>
@@ -114,7 +115,7 @@ export default function Dashboard() {
                   {t(`services.${svc.key}`)}
                 </p>
                 <p className="text-koisk-muted text-xs font-body mt-0.5">
-                  {t('services.pay_bill')} · {t('services.complaint')}
+                  {svc.sub}
                 </p>
               </button>
             ))}
@@ -132,8 +133,10 @@ export default function Dashboard() {
               <div className="animate-spin h-8 w-8 border-3 border-koisk-teal border-t-transparent rounded-full" />
             </div>
           ) : requests.length === 0 ? (
-            <div className="card p-8 text-center text-koisk-muted font-body">
-              {t('dashboard.no_activity')}
+            <div className="card p-10 text-center text-koisk-muted font-body flex flex-col items-center gap-3">
+              <span className="text-4xl" aria-hidden="true">📭</span>
+              <p className="font-display font-semibold text-koisk-navy text-sm">{t('dashboard.no_activity')}</p>
+              <p className="text-xs text-koisk-muted">Use a service above to get started</p>
             </div>
           ) : (
             <div className="space-y-3">

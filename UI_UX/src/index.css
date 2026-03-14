@@ -75,6 +75,15 @@
            min-h-[64px];
   }
 
+  /* Select elements need appearance reset for custom styling */
+  select.input-field {
+    @apply appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238896B3' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1.25rem center;
+    padding-right: 3rem;
+  }
+
   .input-label {
     @apply block text-sm font-display font-semibold
            text-koisk-muted uppercase tracking-wider mb-2;
@@ -126,4 +135,11 @@
   .animation-delay-400 { animation-delay: 400ms; }
   .animation-delay-500 { animation-delay: 500ms; }
   .opacity-0-start    { opacity: 0; }
+
+  /* Non-standard opacity values used by Keyboard component */
+  .bg-white\/8  { background-color: rgb(255 255 255 / 0.08); }
+  .bg-white\/18 { background-color: rgb(255 255 255 / 0.18); }
+
+  /* Kiosk keyboard: push page content up when keyboard is open */
+  .keyboard-open { padding-bottom: 260px; }
 }

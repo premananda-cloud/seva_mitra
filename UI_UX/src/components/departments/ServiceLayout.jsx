@@ -31,9 +31,10 @@ export default function ServiceLayout({ dept, icon, gradient, title, tiles, form
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-white/70 hover:text-white font-body text-sm flex items-center gap-1 transition-colors"
+            className="text-white/70 hover:text-white font-body text-sm flex items-center gap-2 transition-colors min-h-[44px] px-2 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-koisk-accent"
+            aria-label="Back to dashboard"
           >
-            ← Back
+            <span aria-hidden="true">←</span> Back
           </button>
           <span className="font-display font-bold text-white text-lg">KOISK</span>
           <div className="w-16" /> {/* spacer */}

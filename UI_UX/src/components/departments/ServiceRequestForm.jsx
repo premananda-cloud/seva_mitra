@@ -83,7 +83,8 @@ export default function ServiceRequestForm({ title, icon, dept, endpoint, fields
         </div>
         <button
           onClick={onClose}
-          className="ml-auto text-koisk-muted hover:text-koisk-navy text-xl leading-none"
+          className="ml-auto min-h-[44px] min-w-[44px] flex items-center justify-center text-koisk-muted hover:text-koisk-navy text-xl leading-none rounded-xl hover:bg-koisk-surface transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-koisk-teal"
+          aria-label="Close form"
         >
           ✕
         </button>
