@@ -2,16 +2,15 @@
 tests/conftest.py
 =================
 Shared pytest fixtures for KOISK unit and integration tests.
-Portable across all environments.
+Works on machines with working bcrypt AND broken/missing bcrypt.
 """
 
 import os
 import hashlib
 import tempfile
 
-# ── Temp file DB — avoids all SQLite in-memory connection sharing issues ──────
+# ── Temp file DB ──────────────────────────────────────────────────────────────
 _DB_FILE = os.path.join(tempfile.gettempdir(), "koisk_test.db")
-# Remove stale DB from a previous failed run
 try:
     os.remove(_DB_FILE)
 except OSError:
@@ -20,31 +19,53 @@ except OSError:
 os.environ["DATABASE_URL"] = f"sqlite:///{_DB_FILE}"
 os.environ["MOCK_PAYMENT"] = "true"
 
-# ── SHA-256 password helpers ──────────────────────────────────────────────────
-# Bypasses bcrypt entirely — consistent across all environments.
+# ── Determine which hasher to use ─────────────────────────────────────────────
+# Try bcrypt for real. If it crashes at hash time, fall back to SHA-256.
+# This is tested with a real hash call, not just an import check.
+def _try_bcrypt_hash(plain: str):
+    from passlib.context import CryptContext
+    ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    return ctx.hash(plain)  # raises if bcrypt is broken
 
-def _sha256(plain: str) -> str:
+def _try_bcrypt_verify(plain: str, hashed: str) -> bool:
+    from passlib.context import CryptContext
+    ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    return ctx.verify(plain, hashed)
+
+try:
+    _test_hash = _try_bcrypt_hash("test")
+    assert _try_bcrypt_verify("test", _test_hash)
+    _BCRYPT_OK = True
+except Exception:
+    _BCRYPT_OK = False
+
+def _hash_pw(plain: str) -> str:
+    if _BCRYPT_OK:
+        return _try_bcrypt_hash(plain)
     return hashlib.sha256(plain.encode()).hexdigest()
 
-def _sha256_verify(plain: str, hashed: str) -> bool:
-    return _sha256(plain) == hashed
+def _verify_pw(plain: str, hashed: str) -> bool:
+    if _BCRYPT_OK:
+        try:
+            return _try_bcrypt_verify(plain, hashed)
+        except Exception:
+            return False
+    return hashlib.sha256(plain.encode()).hexdigest() == hashed
 
-# Patch _hash_password (used when seeding)
+# ── Patch app modules ─────────────────────────────────────────────────────────
 import src.department.database.database as _db_module
-_db_module._hash_password = _sha256
+_db_module._hash_password = _hash_pw
 
-# Patch verify_password AND the _pwd context object in deps
-# (deps.py may call either depending on code path)
 import src.api.shared.deps as _deps_module
-_deps_module.verify_password = _sha256_verify
+_deps_module.verify_password = _verify_pw
 
-class _SHA256Ctx:
-    def verify(self, plain, hashed): return _sha256_verify(plain, hashed)
-    def hash(self, plain): return _sha256(plain)
+class _PwdCtx:
+    def verify(self, plain, hashed): return _verify_pw(plain, hashed)
+    def hash(self, plain): return _hash_pw(plain)
 
-_deps_module._pwd = _SHA256Ctx()
+_deps_module._pwd = _PwdCtx()
 
-# ── Now import app modules (after patches, after DATABASE_URL is set) ─────────
+# ── Standard imports ──────────────────────────────────────────────────────────
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
@@ -52,7 +73,7 @@ from sqlalchemy.orm import sessionmaker
 
 from src.department.database.models import Base, Admin, User
 
-# ── Single test engine pointing at the temp file ─────────────────────────────
+# ── Single shared engine ──────────────────────────────────────────────────────
 TEST_ENGINE = create_engine(
     f"sqlite:///{_DB_FILE}",
     connect_args={"check_same_thread": False},
@@ -64,9 +85,7 @@ def _pragmas(conn, _):
 
 TestSessionLocal = sessionmaker(bind=TEST_ENGINE, autocommit=False, autoflush=False)
 
-# ── Redirect the app's own engine to TEST_ENGINE ──────────────────────────────
-# init_db() calls create_all(bind=engine) and SessionLocal uses engine.
-# We replace both so the app and our tests share exactly one engine object.
+# ── Redirect the app's engine to TEST_ENGINE ──────────────────────────────────
 _db_module.engine = TEST_ENGINE
 _db_module.SessionLocal = TestSessionLocal
 
@@ -74,17 +93,17 @@ _db_module.SessionLocal = TestSessionLocal
 def _seed_db(session):
     session.add(Admin(
         username="admin", email="admin@koisk.local", full_name="Super Admin",
-        hashed_password=_sha256("Admin@1234"),
+        hashed_password=_hash_pw("Admin@1234"),
         role="super_admin", department=None, is_active=True,
     ))
     session.add(Admin(
         username="water_admin", email="water@koisk.local", full_name="Water Admin",
-        hashed_password=_sha256("Water@1234"),
+        hashed_password=_hash_pw("Water@1234"),
         role="department_admin", department="water", is_active=True,
     ))
     session.add(User(
         username="test_user_001", email="test@koisk.local", full_name="Test Citizen",
-        phone_number="+919999000001", hashed_password=_sha256("Citizen@1234"),
+        phone_number="+919999000001", hashed_password=_hash_pw("Citizen@1234"),
         is_active=True,
     ))
     session.commit()
