@@ -1,93 +1,78 @@
 # Seva Mitra — सेवा मित्र
 
-**Smart & Efficient Virtual Assistant for Multilingual Integrated Transparent Resource Access**
+### Smart & Efficient Virtual Assistant for Multilingual Integrated Transparent Resource Access
 
-A unified, multilingual, offline-first digital kiosk platform for citizen–government interactions.  
-Built for SUVIDHA 2026 — organised by C-DAC under MeitY | Smart City 2.0 Initiative.
-
----
-
-## Demo
-
-[![Watch Demo](https://img.shields.io/badge/Watch%20Demo-YouTube-red?style=for-the-badge&logo=youtube)](https://your-demo-link-here)
-[![Live Preview](https://img.shields.io/badge/Live%20Preview-Click%20Here-blue?style=for-the-badge)](https://your-live-link-here)
+> A unified, multilingual, offline-first digital kiosk for citizen–government interactions.
+> Built for SUVIDHA 2026 — organized by C-DAC under MeitY | Smart City 2.0 Initiative.
 
 ---
 
-## Test Results
+## 🎬 Demo
 
-[![Tests](https://img.shields.io/badge/Tests-149%20passed%2C%202%20skipped-brightgreen?style=for-the-badge)](./tests/)
-[![Coverage](https://img.shields.io/badge/Coverage-Unit%20%2B%20Integration-teal?style=for-the-badge)](./tests/)
-[![Runner](https://img.shields.io/badge/Runner-pytest%209.0-blue?style=for-the-badge)](./pytest.ini)
-
-```
-149 passed · 2 skipped · 0 failed   (pytest 9.0 · Python 3.12 · ~7 seconds)
-```
-
-| Suite | File | Tests |
-|---|---|---|
-| Authentication & Authorisation | `tests/interation/test_auth.py` | 16 |
-| Kiosk Session & OTP Flow | `tests/interation/test_kiosk.py` | 20 |
-| Department Endpoints | `tests/interation/test_departments.py` | 57 |
-| Payments API & Admin Dashboard | `tests/interation/test_payments_and_admin.py` | 32 |
-| Unit Tests — Business Logic | `tests/unit/test_business_logic.py` | 36 |
-
-The 2 skipped tests are bcrypt-variant checks that skip automatically when the bcrypt backend is unavailable in the test environment — the underlying password security is covered by 6 additional passing tests in the same class.
-
-A full test report is available at [`tests/KOISK_Test_Report.docx`](./tests/KOISK_Test_Report.docx).
+[![Watch Demo](https://img.shields.io/badge/%E2%96%B6%20Watch%20Demo-YouTube-red?style=for-the-badge&logo=youtube)](https://your-demo-link-here)
+[![Live Preview](https://img.shields.io/badge/%F0%9F%8C%90%20Live%20Preview-Click%20Here-blue?style=for-the-badge)](https://your-live-link-here)
 
 ---
 
 ## What is Seva Mitra?
 
-Seva Mitra is a public-facing, touch-based kiosk platform built for civic utility offices across India. It consolidates Electricity, Water, Gas, and Municipal services into a single, accessible interface — designed with every Indian citizen in mind, including those historically underserved by digital infrastructure.
+Seva Mitra is a public-facing, touch-based kiosk platform designed for civic utility offices across India. It brings together Electricity, Water, Gas, and Municipal services into a single, accessible interface — built for every Indian citizen, including those the system has traditionally left behind.
 
-Whether it is an elderly resident in a rural municipality, a Manipuri-speaking citizen in the Northeast, or someone operating in a low-connectivity environment — Seva Mitra is built to work for them.
+Whether it's an elderly resident in a rural municipality, a Manipuri-speaking citizen in the Northeast, or someone in a low-connectivity area — Seva Mitra works for them.
 
 ---
 
-## Key Features
+## ✨ Key Features
 
-### Multilingual First — 8 Indian Languages
+### 🌐 Multilingual First — 8 Indian Languages
 
-- **Meitei-Mayek (Manipuri script)** — to our knowledge, the only civic kiosk platform in India with native Meitei-Mayek rendering
-- Hindi · Tamil · Telugu · Kannada · Odia · Marathi · English
+- **Meitei-Mayek (Manipuri script)** — the only civic kiosk platform in India with native Meitei-Mayek rendering
+- Hindi · Bengali · Tamil · Telugu · Kannada · Malayalam · Odia
 - Powered by `react-i18next` with full Unicode support
 
-### Accessibility and Inclusive Design
+### ♿ Designed for Senior Citizens
 
-The interface is designed with elderly and first-time users in mind. Large, high-contrast tap targets are optimised for kiosk touchscreens. Each screen presents a single action to reduce cognitive load. A `KeyboardContext`-driven virtual keyboard removes the dependency on physical input devices. Navigation is strictly linear — no hidden menus or nested flows that could disorient unfamiliar users.
+- Large, high-contrast tap targets optimised for kiosk touchscreens
+- Minimal text per screen — one action at a time
+- Virtual keyboard via `KeyboardContext` for kiosk-mode input
+- Simple, linear navigation — no hidden menus or nested flows
 
-### Offline-First Architecture
+### 📡 Offline-First Architecture
 
-Service requests are queued in **IndexedDB** when internet connectivity is unavailable, and synced automatically on reconnect. No interaction is lost. The application ships with a PWA-ready manifest for permanent kiosk deployment.
+- Service requests queued in **IndexedDB** when internet is unavailable
+- Automatic sync on reconnect — zero lost interactions
+- PWA-ready manifest for kiosk deployment
 
-### Security
+### 🔒 Secure by Design
 
 - **JWT + bcrypt** authentication (cost factor 12)
-- Role-based access control: citizen / admin / department
-- **Razorpay** payment gateway integration — PCI-DSS compliant, with per-department API keys
+- Role-based access: citizen / admin / department
+- **Razorpay** payment gateway — PCI-DSS compliant, per-department keys
 - Pydantic v2 strict validation on all API inputs
 - HTTPS enforced via Nginx TLS in production
 
-### Backend Architecture
+### 🏗️ Production-Grade Backend
 
-The backend is built on a modular **FastAPI** structure with 7 domain routers and 40+ endpoints, organised under `src/api/` using an app factory pattern with shared dependency injection. A **149-test pytest suite** covers unit logic and full API integration across all departments.
+- Modular **FastAPI** architecture — 7 domain routers, 40+ endpoints
+- `src/api/` structure with app factory and shared dependency injection
+- **102-check smoke test suite** across 15 API domains
+- Alembic migrations for zero-downtime database updates
+- Docker + docker-compose for reproducible deployments
 
 ---
 
-## Departments Supported
+## 🏛️ Departments Supported
 
 | Department | Services |
 |---|---|
-| Electricity | Bill payment · New connection · Meter change · Service transfer |
-| Water Supply | Bill payment · Leak reporting · New connection |
-| Gas | Bill payment · New connection |
-| Municipal | Property tax · Trade license · Birth / Death certificate · Building plan · Complaints · Grievances |
+| ⚡ Electricity | Bill payment, new connection, meter change, service transfer |
+| 💧 Water Supply | Bill payment, leak reporting, new connection |
+| 🔥 Gas | Bill payment, new connection |
+| 🏙️ Municipal | Waste management, civic complaints |
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 **Frontend**
 - React 18 + Vite
@@ -98,16 +83,11 @@ The backend is built on a modular **FastAPI** structure with 7 domain routers an
 
 **Backend**
 - FastAPI + Uvicorn
-- SQLAlchemy 2.0 + SQLite / PostgreSQL
+- SQLAlchemy 2.0 + PostgreSQL
+- Alembic (migrations)
 - bcrypt + JWT (OAuth2)
 - Pydantic v2
 - Razorpay SDK
-
-**Testing**
-- pytest 9.0
-- FastAPI TestClient + httpx
-- SQLite in-memory / file-based isolated test DB
-- 149 tests across 5 test modules
 
 **Infrastructure**
 - Docker + docker-compose
@@ -116,13 +96,13 @@ The backend is built on a modular **FastAPI** structure with 7 domain routers an
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
 - Python 3.11+
-- PostgreSQL 15+ (SQLite supported for development)
+- PostgreSQL 15+
 - Docker (recommended)
 
 ### Quick Start with Docker
@@ -134,8 +114,8 @@ cp .env.example .env        # fill in your DB and Razorpay credentials
 docker-compose up --build
 ```
 
-Frontend: `http://localhost:5173`  
-API: `http://localhost:8000`  
+Frontend: `http://localhost:5173`
+API: `http://localhost:8000`
 API Docs: `http://localhost:8000/docs`
 
 ### Manual Setup
@@ -143,174 +123,111 @@ API Docs: `http://localhost:8000/docs`
 **Backend**
 
 ```bash
+cd project/backend
 pip install -r requirements.txt
-uvicorn main:app --reload
+alembic upgrade head
+uvicorn src.main:app --reload
 ```
 
 **Frontend**
 
 ```bash
-cd UI_UX
+cd project/frontend
 npm install
 npm run dev
 ```
 
 ---
 
-## Running Tests
-
-### Install test dependencies
+## 🧪 Running Tests
 
 ```bash
-pip install pytest httpx
-```
-
-### Run the full suite
-
-```bash
-python -m pytest tests/ -v
-```
-
-Expected output:
-
-```
-149 passed, 2 skipped in ~7 seconds
-```
-
-### Run only unit tests
-
-```bash
-python -m pytest tests/unit/ -v
-```
-
-### Run only integration tests
-
-```bash
-python -m pytest tests/interation/ -v
-```
-
-### Test structure
-
-```
-tests/
-├── conftest.py                        # shared fixtures, isolated DB, engine redirect
-├── pytest.ini                         # test discovery config
-├── KOISK_Test_Report.docx             # full test report
-├── unit/
-│   └── test_business_logic.py         # OTP, password hashing, payment refs, catalogue
-└── interation/
-    ├── test_auth.py                   # login, JWT, role-based access control
-    ├── test_kiosk.py                  # OTP session lifecycle, department catalogue
-    ├── test_departments.py            # electricity / water / municipal endpoints
-    └── test_payments_and_admin.py     # payment lifecycle, admin dashboard, kiosk config
-```
-
-### What the tests prove
-
-| Area | What is verified |
-|---|---|
-| Authentication | Correct credentials issue JWT · Bad credentials return 401 · No token returns 401 |
-| Role-based access | Dept admins scoped to their department · Super-admin-only endpoints return 403 |
-| OTP security | 6-digit SHA-256 hashed OTPs · Wrong OTP returns 400 · Ended tokens invalidated |
-| Payment lifecycle | Initiate → Complete → Receipt · Missing fields return 422 |
-| Department services | Bill payment, new connections, complaints, certificates — all 3 departments |
-| Admin dashboard | Request approve / deny / deliver transitions · Nonexistent IDs return 404 |
-| Input validation | All required fields enforced · Malformed requests return 422, not 500 |
-
-### Legacy smoke test
-
-The original 102-check smoke test is also retained:
-
-```bash
+cd project/backend
 python test_backend.py
 ```
 
----
-
-## Language Configuration
-
-Language files live in `UI_UX/src/modules/language/locales/`. To add a new language:
-
-1. Create `locales/{code}.json`
-2. Register the locale in `i18n.js`
-3. Add the option to the language selector component
-
-Current locales: `en` · `hi` · `ma` (Meitei-Mayek) · `ta` · `te` · `kn` · `od` · `mr`
+102 checks across 15 API domains. All must pass before deployment.
 
 ---
 
-## Project Structure
+## 🌍 Language Configuration
+
+Language files live in `src/locales/`. To add a new language:
+
+1. Create `src/locales/{code}.json`
+2. Add the locale entry in `i18n.js`
+3. Add the language option in the language selector component
+
+Current locales: `en`, `hi`, `bn`, `ta`, `te`, `kn`, `ml`, `or`, `ma` (Meitei-Mayek)
+
+---
+
+## 📁 Project Structure
 
 ```
 seva_mitra/
-├── main.py                         # FastAPI app factory
-├── requirements.txt
-├── test_backend.py                 # legacy 102-check smoke suite
-├── pytest.ini
-├── src/
-│   ├── api/                        # 7 domain routers
-│   │   ├── admin/
-│   │   ├── electricity/
-│   │   ├── water/
-│   │   ├── municipal/
-│   │   ├── kiosk/
-│   │   ├── payments/
-│   │   └── shared/
-│   ├── database/
-│   │   ├── models.py
-│   │   └── database.py
-│   └── payment/
-│       ├── mock_payment_engine.py
-│       └── payment_handler.py
-├── UI_UX/                          # React + Vite frontend
-│   ├── src/
-│   │   ├── components/
-│   │   ├── modules/
-│   │   │   └── language/locales/   # i18n files incl. ma.json (Meitei-Mayek)
-│   │   └── hooks/
-│   └── package.json
-├── tests/
-│   ├── conftest.py
-│   ├── KOISK_Test_Report.docx
-│   ├── unit/
-│   └── interation/
-├── database/
-└── docs/
+├── project/
+│   ├── frontend/
+│   │   ├── src/
+│   │   │   ├── components/     # UI components
+│   │   │   ├── screens/        # Page-level screens
+│   │   │   ├── locales/        # i18n language files (incl. ma.json)
+│   │   │   ├── context/        # KeyboardContext, AuthContext
+│   │   │   └── utils/          # Offline queue, API helpers
+│   │   └── package.json
+│   └── backend/
+│       ├── src/
+│       │   ├── api/            # 7 domain routers
+│       │   │   ├── admin.py
+│       │   │   ├── electricity.py
+│       │   │   ├── water.py
+│       │   │   ├── municipal.py
+│       │   │   ├── kiosk.py
+│       │   │   ├── payments.py
+│       │   │   └── shared.py
+│       │   ├── models.py       # Pydantic v2 schemas
+│       │   ├── database.py     # SQLAlchemy engine + session
+│       │   └── main.py         # App factory (~21 lines)
+│       ├── test_backend.py     # 102-check smoke suite
+│       └── requirements.txt
+├── docs/
+├── UI_UX/
+└── architecture.txt
 ```
 
 ---
 
-## Security Notes
+## 🔒 Security
 
-- Passwords are hashed with bcrypt and never stored in plaintext
-- JWT tokens with configurable expiry; kiosk sessions auto-expire after 30 minutes
-- All payment flows are handled via Razorpay — card data never touches application servers
-- SQL injection is prevented through SQLAlchemy ORM parameterisation
-- CORS is restricted to permitted origins
+- Passwords hashed with bcrypt (never stored in plaintext)
+- JWT tokens with configurable expiry + auto-logout after 30 min (kiosk mode)
+- All payments processed via Razorpay — card data never touches our servers
+- SQL injection prevention via SQLAlchemy ORM parameterisation
+- CORS restricted to allowed origins
 
 ---
 
-## Request Status Flow
+## 📊 Request Status Flow
 
 ```
-SUBMITTED → PROCESSING → APPROVED → DELIVERED
-                                   ↘ DENIED
+DRAFT → SUBMITTED → PROCESSING → APPROVED → COMPLETED
+                                           ↘ REJECTED
 ```
 
-Citizens can track request status in real time from any device.
+Citizens can track their request status in real time from any device.
 
 ---
 
-## Team Pradix
+## 🤝 Team Praxis
 
-Developed for SUVIDHA 2026 — C-DAC National Hackathon under the MeitY Smart City 2.0 Initiative.
-
----
-
-## License
-
-This project was developed for the SUVIDHA 2026 Hackathon. All rights reserved by Team Pradix.
+Built with care for SUVIDHA 2026 — C-DAC National Hackathon under MeitY Smart City 2.0 Initiative.
 
 ---
 
-*Seva Mitra — One kiosk. Every utility. Every language. Everywhere.*
+## 📄 License
+
+This project was developed for the SUVIDHA 2026 Hackathon. All rights reserved by Team Praxis.
+
+---
+
+> *Seva Mitra — One kiosk. Every utility. Every language. Everywhere.*
