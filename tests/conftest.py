@@ -2,107 +2,89 @@
 tests/conftest.py
 =================
 Shared pytest fixtures for KOISK unit and integration tests.
-
-Portable — works whether bcrypt is functional or falls back to SHA-256.
+Portable across all environments.
 """
 
 import os
 import hashlib
+import tempfile
 
-# ── Point to isolated in-memory DB BEFORE any app import ─────────────────────
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+# ── Temp file DB — avoids all SQLite in-memory connection sharing issues ──────
+_DB_FILE = os.path.join(tempfile.gettempdir(), "koisk_test.db")
+# Remove stale DB from a previous failed run
+try:
+    os.remove(_DB_FILE)
+except OSError:
+    pass
+
+os.environ["DATABASE_URL"] = f"sqlite:///{_DB_FILE}"
 os.environ["MOCK_PAYMENT"] = "true"
 
-# ── Detect whether bcrypt is usable in this environment ──────────────────────
-# Some environments have a broken passlib/bcrypt pairing. We detect this once
-# and patch consistently so seeding and verification always use the same scheme.
-def _bcrypt_works() -> bool:
-    try:
-        from passlib.context import CryptContext
-        ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        h = ctx.hash("probe")
-        return ctx.verify("probe", h)
-    except Exception:
-        return False
+# ── SHA-256 password helpers ──────────────────────────────────────────────────
+# Bypasses bcrypt entirely — consistent across all environments.
 
-_USE_BCRYPT = _bcrypt_works()
-
-def _hash_pw(plain: str) -> str:
-    if _USE_BCRYPT:
-        from passlib.context import CryptContext
-        return CryptContext(schemes=["bcrypt"], deprecated="auto").hash(plain)
+def _sha256(plain: str) -> str:
     return hashlib.sha256(plain.encode()).hexdigest()
 
-def _verify_pw(plain: str, hashed: str) -> bool:
-    if _USE_BCRYPT:
-        from passlib.context import CryptContext
-        try:
-            return CryptContext(schemes=["bcrypt"], deprecated="auto").verify(plain, hashed)
-        except Exception:
-            return False
-    return hashlib.sha256(plain.encode()).hexdigest() == hashed
+def _sha256_verify(plain: str, hashed: str) -> bool:
+    return _sha256(plain) == hashed
 
-# Patch both modules so seeding and login use the same scheme
+# Patch _hash_password (used when seeding)
 import src.department.database.database as _db_module
-_db_module._hash_password = _hash_pw
+_db_module._hash_password = _sha256
 
+# Patch verify_password AND the _pwd context object in deps
+# (deps.py may call either depending on code path)
 import src.api.shared.deps as _deps_module
-_deps_module.verify_password = _verify_pw
+_deps_module.verify_password = _sha256_verify
 
-# ── Standard imports (after patches) ─────────────────────────────────────────
+class _SHA256Ctx:
+    def verify(self, plain, hashed): return _sha256_verify(plain, hashed)
+    def hash(self, plain): return _sha256(plain)
+
+_deps_module._pwd = _SHA256Ctx()
+
+# ── Now import app modules (after patches, after DATABASE_URL is set) ─────────
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from src.department.database.database import _hash_password
-from src.department.database.models import (
-    Base, Admin, User,
-)
+from src.department.database.models import Base, Admin, User
 
-# ── Single shared in-memory engine ───────────────────────────────────────────
-# StaticPool + check_same_thread=False ensures every session and the
-# TestClient all see the same in-memory database.
+# ── Single test engine pointing at the temp file ─────────────────────────────
 TEST_ENGINE = create_engine(
-    "sqlite:///:memory:",
+    f"sqlite:///{_DB_FILE}",
     connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
 )
 
-# Enable foreign keys for SQLite
 @event.listens_for(TEST_ENGINE, "connect")
-def _sqlite_pragmas(dbapi_conn, _):
-    dbapi_conn.execute("PRAGMA foreign_keys=ON")
+def _pragmas(conn, _):
+    conn.execute("PRAGMA foreign_keys=ON")
 
 TestSessionLocal = sessionmaker(bind=TEST_ENGINE, autocommit=False, autoflush=False)
+
+# ── Redirect the app's own engine to TEST_ENGINE ──────────────────────────────
+# init_db() calls create_all(bind=engine) and SessionLocal uses engine.
+# We replace both so the app and our tests share exactly one engine object.
+_db_module.engine = TEST_ENGINE
+_db_module.SessionLocal = TestSessionLocal
 
 
 def _seed_db(session):
     session.add(Admin(
-        username="admin",
-        email="admin@koisk.local",
-        full_name="Super Admin",
-        hashed_password=_hash_pw("Admin@1234"),
-        role="super_admin",
-        department=None,
-        is_active=True,
+        username="admin", email="admin@koisk.local", full_name="Super Admin",
+        hashed_password=_sha256("Admin@1234"),
+        role="super_admin", department=None, is_active=True,
     ))
     session.add(Admin(
-        username="water_admin",
-        email="water@koisk.local",
-        full_name="Water Admin",
-        hashed_password=_hash_pw("Water@1234"),
-        role="department_admin",
-        department="water",
-        is_active=True,
+        username="water_admin", email="water@koisk.local", full_name="Water Admin",
+        hashed_password=_sha256("Water@1234"),
+        role="department_admin", department="water", is_active=True,
     ))
     session.add(User(
-        username="test_user_001",
-        email="test@koisk.local",
-        full_name="Test Citizen",
-        phone_number="+919999000001",
-        hashed_password=_hash_pw("Citizen@1234"),
+        username="test_user_001", email="test@koisk.local", full_name="Test Citizen",
+        phone_number="+919999000001", hashed_password=_sha256("Citizen@1234"),
         is_active=True,
     ))
     session.commit()
@@ -110,18 +92,20 @@ def _seed_db(session):
 
 @pytest.fixture(scope="session", autouse=True)
 def _create_tables():
-    """Create all tables once and seed them. Shared across the full session."""
     Base.metadata.create_all(bind=TEST_ENGINE)
     s = TestSessionLocal()
     _seed_db(s)
     s.close()
     yield
     Base.metadata.drop_all(bind=TEST_ENGINE)
+    try:
+        os.remove(_DB_FILE)
+    except OSError:
+        pass
 
 
 @pytest.fixture()
 def db_session():
-    """Per-test DB session. Changes are visible within the test, not after."""
     session = TestSessionLocal()
     yield session
     session.close()
@@ -129,10 +113,6 @@ def db_session():
 
 @pytest.fixture(scope="session")
 def client(_create_tables):
-    """
-    FastAPI TestClient wired to TEST_ENGINE via dependency override.
-    scope=session so the same client is reused — avoids re-creating tables.
-    """
     from main import app
     from src.department.database.database import get_db
 
@@ -164,22 +144,16 @@ def dept_token(client):
 
 
 def crack_otp(session_id: int) -> str | None:
-    """
-    Brute-force the 6-digit OTP by SHA-256 matching against the DB.
-    Uses TEST_ENGINE directly — guaranteed to see the same in-memory DB
-    as the TestClient via StaticPool.
-    Test-only. Never called from production code.
-    """
+    """Brute-force 6-digit OTP from the test DB. Test-only."""
     from src.department.database.models import KioskSession
     session = TestSessionLocal()
     try:
         row = session.query(KioskSession).filter(KioskSession.id == session_id).first()
         if not row:
             return None
-        stored = row.otp_code
         for n in range(1_000_000):
             candidate = f"{n:06d}"
-            if hashlib.sha256(candidate.encode()).hexdigest() == stored:
+            if hashlib.sha256(candidate.encode()).hexdigest() == row.otp_code:
                 return candidate
         return None
     finally:
