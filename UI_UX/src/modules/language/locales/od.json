@@ -1,7 +1,6 @@
 {
   "app_name": "Seva Mitra",
   "tagline": "ସ୍ମାର୍ଟ ନାଗରିକ ଉପଯୋଗିତା କିଓସ୍କ",
-
   "nav": {
     "home": "ହୋମ",
     "dashboard": "ଡ୍ୟାସବୋର୍ଡ",
@@ -11,7 +10,6 @@
     "cancel": "ବାତିଲ",
     "confirm": "ନିଶ୍ଚିତ କରନ୍ତୁ"
   },
-
   "language": {
     "select_title": "Seva Mitra କୁ ସ୍ୱାଗତ",
     "select_subtitle": "ଜାରି ରଖିବାକୁ ଆପଣଙ୍କ ପସନ୍ଦର ଭାଷା ବାଛନ୍ତୁ",
@@ -19,7 +17,6 @@
     "continue": "ଜାରି ରଖନ୍ତୁ",
     "change": "ଭାଷା ବଦଳାନ୍ତୁ"
   },
-
   "auth": {
     "login_title": "ସାଇନ ଇନ",
     "login_subtitle": "ଆପଣଙ୍କ ପଞ୍ଜୀଭୁକ୍ତ ଫୋନ ନଂ ଏବଂ ପିନ ଦିଅନ୍ତୁ",
@@ -60,7 +57,6 @@
       "logged_in": "ପୁଣି ସ୍ୱାଗତ!"
     }
   },
-
   "dashboard": {
     "greeting_morning": "ଶୁଭ ସକାଳ",
     "greeting_afternoon": "ଶୁଭ ଅପରାହ୍ଣ",
@@ -72,7 +68,6 @@
     "quick_pay": "ଶୀଘ୍ର ଦେୟ",
     "view_all": "ସବୁ ଦେଖନ୍ତୁ"
   },
-
   "services": {
     "electricity": "ବିଦ୍ୟୁତ",
     "gas": "ଗ୍ୟାସ",
@@ -81,9 +76,9 @@
     "pay_bill": "ବିଲ ଦେୟ",
     "new_connection": "ନୂତନ ସଂଯୋଗ",
     "complaint": "ଅଭିଯୋଗ",
-    "track_request": "ଅନୁରୋଧ ଟ୍ରାକ"
+    "track_request": "ଅନୁରୋଧ ଟ୍ରାକ",
+    "complaints": "ଅଭିଯୋଗ"
   },
-
   "status": {
     "submitted": "ଦାଖଲ ହୋଇଛି",
     "processing": "ପ୍ରକ୍ରିୟାଧୀନ",
@@ -92,7 +87,6 @@
     "rejected": "ଅଗ୍ରାହ୍ୟ",
     "pending": "ବିଚାରାଧୀନ"
   },
-
   "common": {
     "loading": "ଲୋଡ ହେଉଛି...",
     "error": "ତ୍ରୁଟି",

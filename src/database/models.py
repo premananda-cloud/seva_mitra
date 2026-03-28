@@ -48,6 +48,7 @@ class ServiceStatusEnum(str, enum.Enum):
 class DepartmentEnum(str, enum.Enum):
     ELECTRICITY = "electricity"
     WATER       = "water"
+    GAS         = "gas"
     MUNICIPAL   = "municipal"
 
 
@@ -89,6 +90,7 @@ class User(Base):
     service_requests      = relationship("ServiceRequest",      back_populates="user", cascade="all, delete-orphan")
     electricity_meters    = relationship("ElectricityMeter",    back_populates="user", cascade="all, delete-orphan")
     water_consumers       = relationship("WaterConsumer",       back_populates="user", cascade="all, delete-orphan")
+    gas_consumers         = relationship("GasConsumer",         back_populates="user", cascade="all, delete-orphan")
     municipal_consumers   = relationship("MunicipalConsumer",   back_populates="user", cascade="all, delete-orphan")
     payment_profile       = relationship("PaymentProfile",      back_populates="user", uselist=False)
 
@@ -222,6 +224,27 @@ class WaterConsumer(Base):
     updated_at          = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="water_consumers")
+
+
+# ─── Gas ─────────────────────────────────────────────────────────────────────
+
+class GasConsumer(Base):
+    __tablename__ = "gas_consumers"
+
+    id                  = Column(Integer, primary_key=True, index=True)
+    user_id             = Column(Integer, ForeignKey("users.id"), nullable=False)
+    consumer_number     = Column(String(50), unique=True, index=True, nullable=False)
+    connection_type     = Column(String(50), nullable=True)   # domestic | commercial
+    status              = Column(String(20), default="ACTIVE")
+    monthly_bill        = Column(Float, default=0.0)
+    outstanding_amount  = Column(Float, default=0.0)
+    meter_number        = Column(String(50), nullable=True, unique=True)
+    last_reading        = Column(Float, nullable=True)
+    last_reading_date   = Column(DateTime, nullable=True)
+    created_at          = Column(DateTime, default=datetime.utcnow)
+    updated_at          = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="gas_consumers")
 
 
 # ─── Municipal ────────────────────────────────────────────────────────────────

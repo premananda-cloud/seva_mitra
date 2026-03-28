@@ -1,7 +1,6 @@
 {
   "app_name": "Seva Mitra",
   "tagline": "Smart Civic Utility Kiosk",
-
   "nav": {
     "home": "Home",
     "dashboard": "Dashboard",
@@ -11,7 +10,6 @@
     "cancel": "Cancel",
     "confirm": "Confirm"
   },
-
   "language": {
     "select_title": "Welcome to Seva Mitra",
     "select_subtitle": "Choose your preferred language to continue",
@@ -19,7 +17,6 @@
     "continue": "Continue",
     "change": "Change Language"
   },
-
   "auth": {
     "login_title": "Sign In",
     "login_subtitle": "Enter your registered phone number and PIN",
@@ -60,7 +57,6 @@
       "logged_in": "Welcome back!"
     }
   },
-
   "dashboard": {
     "greeting_morning": "Good morning",
     "greeting_afternoon": "Good afternoon",
@@ -72,7 +68,6 @@
     "quick_pay": "Quick Pay",
     "view_all": "View All"
   },
-
   "services": {
     "electricity": "Electricity",
     "gas": "Gas",
@@ -81,9 +76,9 @@
     "pay_bill": "Pay Bill",
     "new_connection": "New Connection",
     "complaint": "Complaint",
-    "track_request": "Track Request"
+    "track_request": "Track Request",
+    "complaints": "Complaints"
   },
-
   "status": {
     "submitted": "Submitted",
     "processing": "Processing",
@@ -92,7 +87,6 @@
     "rejected": "Rejected",
     "pending": "Pending"
   },
-
   "common": {
     "loading": "Loading...",
     "error": "Error",

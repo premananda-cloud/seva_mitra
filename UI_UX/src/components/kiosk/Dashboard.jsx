@@ -8,10 +8,11 @@ import { useIdleTimeout } from '../../hooks/useIdleTimeout'
 import IdleOverlay from './IdleOverlay'
 
 const SERVICE_TILES = [
-  { key: 'electricity', icon: '⚡', color: 'from-amber-400 to-yellow-500',  textColor: 'text-amber-900', sub: 'Pay bill · New connection' },
-  { key: 'gas',         icon: '🔥', color: 'from-orange-400 to-red-500',    textColor: 'text-red-900',   sub: 'Pay bill · New connection' },
-  { key: 'water',       icon: '💧', color: 'from-blue-400 to-cyan-500',     textColor: 'text-blue-900',  sub: 'Pay bill · Report leak'    },
-  { key: 'municipal',   icon: '🏛️', color: 'from-emerald-400 to-green-500', textColor: 'text-green-900', sub: 'Property tax · Certificates' },
+  { key: 'electricity', icon: '⚡', color: 'from-amber-400 to-yellow-500',   textColor: 'text-amber-900', sub: 'Pay bill · New connection'      },
+  { key: 'gas',         icon: '🔥', color: 'from-orange-400 to-red-500',     textColor: 'text-red-900',   sub: 'Pay bill · New connection'      },
+  { key: 'water',       icon: '💧', color: 'from-blue-400 to-cyan-500',      textColor: 'text-blue-900',  sub: 'Pay bill · Report leak'         },
+  { key: 'municipal',   icon: '🏛️', color: 'from-emerald-400 to-green-500',  textColor: 'text-green-900', sub: 'Property tax · Certificates'    },
+  { key: 'complaints',  icon: '📣', color: 'from-violet-400 to-purple-500',  textColor: 'text-purple-900',sub: 'Register & track complaints'    },
 ]
 
 const STATUS_CONFIG = {
@@ -102,6 +103,9 @@ export default function Dashboard() {
                   'card-hover p-5 text-left',
                   'animate-fade-up opacity-0-start',
                   `animation-delay-${(i + 1) * 100}`,
+                  i === SERVICE_TILES.length - 1 && SERVICE_TILES.length % 2 !== 0
+                    ? 'col-span-2'
+                    : '',
                 )}
                 style={{ animationFillMode: 'forwards' }}
               >

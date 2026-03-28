@@ -16,6 +16,8 @@ from src.department.database.database import init_db
 from src.api.admin.router       import router as admin_router
 from src.api.electricity.router  import router as electricity_router
 from src.api.water.router        import router as water_router
+from src.api.gas.router          import router as gas_router
+from src.api.complaints.router   import router as complaints_router
 from src.api.municipal.router    import router as municipal_router
 from src.api.kiosk.router        import router as kiosk_router
 from src.api.payments.router     import router as payments_router
@@ -58,7 +60,7 @@ async def health():
         "status":       "healthy",
         "timestamp":    datetime.utcnow().isoformat(),
         "mock_payment": os.getenv("MOCK_PAYMENT", "true"),
-        "departments":  ["electricity", "water", "municipal"],
+        "departments":  ["electricity", "water", "gas", "municipal"],
     }
 
 # ─── Routers ──────────────────────────────────────────────────────────────────
@@ -66,6 +68,8 @@ async def health():
 app.include_router(admin_router)
 app.include_router(electricity_router)
 app.include_router(water_router)
+app.include_router(gas_router)
+app.include_router(complaints_router)
 app.include_router(municipal_router)
 app.include_router(kiosk_router)
 app.include_router(payments_router)

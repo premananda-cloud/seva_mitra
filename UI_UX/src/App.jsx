@@ -13,10 +13,11 @@ import Dashboard from '@/components/kiosk/Dashboard';
 import ReceiptScreen   from '@/components/payment/ReceiptScreen';   // FIXED: was @/modules/payment/
 
 // Department service screens
-import ElectricityScreen from '@/components/departments/ElectricityScreen';
-import WaterScreen       from '@/components/departments/WaterScreen';
-import MunicipalScreen   from '@/components/departments/MunicipalScreen';
-import GasScreen         from '@/components/departments/GasScreen';
+import ElectricityScreen  from '@/components/departments/ElectricityScreen';
+import WaterScreen        from '@/components/departments/WaterScreen';
+import MunicipalScreen    from '@/components/departments/MunicipalScreen';
+import GasScreen          from '@/components/departments/GasScreen';
+import ComplaintsScreen   from '@/components/departments/ComplaintsScreen';
 
 // Orchestrator stub
 import '@/modules/orchestrator/orchestrator';
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="/services/water"        element={<Protected><WaterScreen /></Protected>} />
         <Route path="/services/gas"          element={<Protected><GasScreen /></Protected>} />
         <Route path="/services/municipal"    element={<Protected><MunicipalScreen /></Protected>} />
+        <Route path="/services/complaints"   element={<Protected><ComplaintsScreen /></Protected>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

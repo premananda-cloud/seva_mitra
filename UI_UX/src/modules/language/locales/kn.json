@@ -1,26 +1,103 @@
 {
   "app_name": "Seva Mitra",
   "tagline": "ಸ್ಮಾರ್ಟ್ ನಾಗರಿಕ ಉಪಯೋಗಿತೆ ಕಿಯೋಸ್ಕ್",
-  "nav": { "home": "ಮುಖಪುಟ", "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್", "logout": "ಲಾಗ್ಔಟ್", "back": "ಹಿಂದೆ", "next": "ಮುಂದೆ", "cancel": "ರದ್ದು", "confirm": "ದೃಢಪಡಿಸು" },
-  "language": { "select_title": "Seva Mitra ಗೆ ಸ್ವಾಗತ", "select_subtitle": "ಮುಂದುವರಿಯಲು ನಿಮ್ಮ ಆದ್ಯತೆಯ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ", "current": "ಪ್ರಸ್ತುತ ಭಾಷೆ", "continue": "ಮುಂದುವರಿಸು", "change": "ಭಾಷೆ ಬದಲಾಯಿಸಿ" },
-  "auth": {
-    "login_title": "ಸೈನ್ ಇನ್", "login_subtitle": "ನೋಂದಾಯಿತ ಫೋನ್ ಸಂಖ್ಯೆ ಮತ್ತು PIN ನಮೂದಿಸಿ",
-    "register_title": "ಖಾತೆ ರಚಿಸಿ", "register_subtitle": "ಎಲ್ಲಾ ನಾಗರಿಕ ಸೇವೆಗಳನ್ನು ಪ್ರವೇಶಿಸಲು ನೋಂದಾಯಿಸಿ",
-    "phone": "ಫೋನ್ ಸಂಖ್ಯೆ", "phone_placeholder": "10 ಅಂಕಿ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ",
-    "pin": "PIN", "pin_placeholder": "4 ಅಂಕಿ PIN ನಮೂದಿಸಿ",
-    "pin_confirm": "PIN ದೃಢಪಡಿಸಿ", "pin_confirm_placeholder": "PIN ಮತ್ತೆ ನಮೂದಿಸಿ",
-    "name": "ಪೂರ್ಣ ಹೆಸರು", "name_placeholder": "ಆಧಾರ್ ಕಾರ್ಡ್ ಪ್ರಕಾರ",
-    "consumer_id": "ಗ್ರಾಹಕ ID (ಐಚ್ಛಿಕ)", "consumer_id_placeholder": "ವಿದ್ಯುತ್ / ನೀರು / ಗ್ಯಾಸ್ ಗ್ರಾಹಕ ಸಂಖ್ಯೆ",
-    "login_btn": "ಸೈನ್ ಇನ್", "register_btn": "ಖಾತೆ ರಚಿಸಿ",
-    "no_account": "ಖಾತೆ ಇಲ್ಲವೇ?", "have_account": "ಈಗಾಗಲೇ ನೋಂದಾಯಿಸಿದ್ದೀರಾ?",
-    "register_link": "ಇಲ್ಲಿ ನೋಂದಾಯಿಸಿ", "login_link": "ಸೈನ್ ಇನ್",
-    "use_demo": "ಡೆಮೋ ಖಾತೆ ಬಳಸಿ", "demo_hint": "ಪ್ರದರ್ಶನಕ್ಕಾಗಿ ಮಾದರಿ ಡೇಟಾದೊಂದಿಗೆ ಪ್ರಿಲೋಡ್",
-    "or_divider": "ಅಥವಾ",
-    "errors": { "phone_required": "ಫೋನ್ ಸಂಖ್ಯೆ ಅಗತ್ಯ", "phone_invalid": "ಮಾನ್ಯ 10 ಅಂಕಿ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ", "pin_required": "PIN ಅಗತ್ಯ", "pin_length": "PIN ನಿಖರವಾಗಿ 4 ಅಂಕೆಗಳಿರಬೇಕು", "pin_mismatch": "PIN ಗಳು ಹೊಂದಾಣಿಕೆಯಾಗುತ್ತಿಲ್ಲ", "name_required": "ಪೂರ್ಣ ಹೆಸರು ಅಗತ್ಯ", "invalid_credentials": "ಫೋನ್ ಸಂಖ್ಯೆ ಅಥವಾ PIN ತಪ್ಪು", "already_registered": "ಈ ಫೋನ್ ಸಂಖ್ಯೆ ಈಗಾಗಲೇ ನೋಂದಾಯಿಸಲಾಗಿದೆ", "generic": "ಏನೋ ತಪ್ಪಾಯಿತು. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ." },
-    "success": { "registered": "ಖಾತೆ ಯಶಸ್ವಿಯಾಗಿ ರಚಿಸಲಾಗಿದೆ!", "logged_in": "ಮತ್ತೆ ಸ್ವಾಗತ!" }
+  "nav": {
+    "home": "ಮುಖಪುಟ",
+    "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    "logout": "ಲಾಗ್ಔಟ್",
+    "back": "ಹಿಂದೆ",
+    "next": "ಮುಂದೆ",
+    "cancel": "ರದ್ದು",
+    "confirm": "ದೃಢಪಡಿಸು"
   },
-  "dashboard": { "greeting_morning": "ಶುಭ ಬೆಳಿಗ್ಗೆ", "greeting_afternoon": "ಶುಭ ಮಧ್ಯಾಹ್ನ", "greeting_evening": "ಶುಭ ಸಂಜೆ", "welcome": "ಸ್ವಾಗತ", "services": "ಸೇವೆಗಳು", "recent_activity": "ಇತ್ತೀಚಿನ ಚಟುವಟಿಕೆ", "no_activity": "ಇತ್ತೀಚಿನ ಚಟುವಟಿಕೆ ಇಲ್ಲ", "quick_pay": "ತ್ವರಿತ ಪಾವತಿ", "view_all": "ಎಲ್ಲವನ್ನು ನೋಡಿ" },
-  "services": { "electricity": "ವಿದ್ಯುತ್", "gas": "ಗ್ಯಾಸ್", "water": "ನೀರು", "municipal": "ಪುರಸಭೆ", "pay_bill": "ಬಿಲ್ ಪಾವತಿಸಿ", "new_connection": "ಹೊಸ ಸಂಪರ್ಕ", "complaint": "ದೂರು", "track_request": "ವಿನಂತಿ ಟ್ರ್ಯಾಕ್ ಮಾಡಿ" },
-  "status": { "submitted": "ಸಲ್ಲಿಸಲಾಗಿದೆ", "processing": "ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿ", "approved": "ಅನುಮೋದಿಸಲಾಗಿದೆ", "completed": "ಪೂರ್ಣಗೊಂಡಿದೆ", "rejected": "ತಿರಸ್ಕರಿಸಲಾಗಿದೆ", "pending": "ಬಾಕಿ" },
-  "common": { "loading": "ಲೋಡ್ ಆಗುತ್ತಿದೆ...", "error": "ದೋಷ", "success": "ಯಶಸ್ಸು", "close": "ಮುಚ್ಚು", "save": "ಉಳಿಸು", "edit": "ಸಂಪಾದಿಸು", "delete": "ಅಳಿಸು", "amount": "ಮೊತ್ತ", "date": "ದಿನಾಂಕ", "reference": "ಉಲ್ಲೇಖ", "rupee": "₹" }
+  "language": {
+    "select_title": "Seva Mitra ಗೆ ಸ್ವಾಗತ",
+    "select_subtitle": "ಮುಂದುವರಿಯಲು ನಿಮ್ಮ ಆದ್ಯತೆಯ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    "current": "ಪ್ರಸ್ತುತ ಭಾಷೆ",
+    "continue": "ಮುಂದುವರಿಸು",
+    "change": "ಭಾಷೆ ಬದಲಾಯಿಸಿ"
+  },
+  "auth": {
+    "login_title": "ಸೈನ್ ಇನ್",
+    "login_subtitle": "ನೋಂದಾಯಿತ ಫೋನ್ ಸಂಖ್ಯೆ ಮತ್ತು PIN ನಮೂದಿಸಿ",
+    "register_title": "ಖಾತೆ ರಚಿಸಿ",
+    "register_subtitle": "ಎಲ್ಲಾ ನಾಗರಿಕ ಸೇವೆಗಳನ್ನು ಪ್ರವೇಶಿಸಲು ನೋಂದಾಯಿಸಿ",
+    "phone": "ಫೋನ್ ಸಂಖ್ಯೆ",
+    "phone_placeholder": "10 ಅಂಕಿ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ",
+    "pin": "PIN",
+    "pin_placeholder": "4 ಅಂಕಿ PIN ನಮೂದಿಸಿ",
+    "pin_confirm": "PIN ದೃಢಪಡಿಸಿ",
+    "pin_confirm_placeholder": "PIN ಮತ್ತೆ ನಮೂದಿಸಿ",
+    "name": "ಪೂರ್ಣ ಹೆಸರು",
+    "name_placeholder": "ಆಧಾರ್ ಕಾರ್ಡ್ ಪ್ರಕಾರ",
+    "consumer_id": "ಗ್ರಾಹಕ ID (ಐಚ್ಛಿಕ)",
+    "consumer_id_placeholder": "ವಿದ್ಯುತ್ / ನೀರು / ಗ್ಯಾಸ್ ಗ್ರಾಹಕ ಸಂಖ್ಯೆ",
+    "login_btn": "ಸೈನ್ ಇನ್",
+    "register_btn": "ಖಾತೆ ರಚಿಸಿ",
+    "no_account": "ಖಾತೆ ಇಲ್ಲವೇ?",
+    "have_account": "ಈಗಾಗಲೇ ನೋಂದಾಯಿಸಿದ್ದೀರಾ?",
+    "register_link": "ಇಲ್ಲಿ ನೋಂದಾಯಿಸಿ",
+    "login_link": "ಸೈನ್ ಇನ್",
+    "use_demo": "ಡೆಮೋ ಖಾತೆ ಬಳಸಿ",
+    "demo_hint": "ಪ್ರದರ್ಶನಕ್ಕಾಗಿ ಮಾದರಿ ಡೇಟಾದೊಂದಿಗೆ ಪ್ರಿಲೋಡ್",
+    "or_divider": "ಅಥವಾ",
+    "errors": {
+      "phone_required": "ಫೋನ್ ಸಂಖ್ಯೆ ಅಗತ್ಯ",
+      "phone_invalid": "ಮಾನ್ಯ 10 ಅಂಕಿ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ",
+      "pin_required": "PIN ಅಗತ್ಯ",
+      "pin_length": "PIN ನಿಖರವಾಗಿ 4 ಅಂಕೆಗಳಿರಬೇಕು",
+      "pin_mismatch": "PIN ಗಳು ಹೊಂದಾಣಿಕೆಯಾಗುತ್ತಿಲ್ಲ",
+      "name_required": "ಪೂರ್ಣ ಹೆಸರು ಅಗತ್ಯ",
+      "invalid_credentials": "ಫೋನ್ ಸಂಖ್ಯೆ ಅಥವಾ PIN ತಪ್ಪು",
+      "already_registered": "ಈ ಫೋನ್ ಸಂಖ್ಯೆ ಈಗಾಗಲೇ ನೋಂದಾಯಿಸಲಾಗಿದೆ",
+      "generic": "ಏನೋ ತಪ್ಪಾಯಿತು. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+    },
+    "success": {
+      "registered": "ಖಾತೆ ಯಶಸ್ವಿಯಾಗಿ ರಚಿಸಲಾಗಿದೆ!",
+      "logged_in": "ಮತ್ತೆ ಸ್ವಾಗತ!"
+    }
+  },
+  "dashboard": {
+    "greeting_morning": "ಶುಭ ಬೆಳಿಗ್ಗೆ",
+    "greeting_afternoon": "ಶುಭ ಮಧ್ಯಾಹ್ನ",
+    "greeting_evening": "ಶುಭ ಸಂಜೆ",
+    "welcome": "ಸ್ವಾಗತ",
+    "services": "ಸೇವೆಗಳು",
+    "recent_activity": "ಇತ್ತೀಚಿನ ಚಟುವಟಿಕೆ",
+    "no_activity": "ಇತ್ತೀಚಿನ ಚಟುವಟಿಕೆ ಇಲ್ಲ",
+    "quick_pay": "ತ್ವರಿತ ಪಾವತಿ",
+    "view_all": "ಎಲ್ಲವನ್ನು ನೋಡಿ"
+  },
+  "services": {
+    "electricity": "ವಿದ್ಯುತ್",
+    "gas": "ಗ್ಯಾಸ್",
+    "water": "ನೀರು",
+    "municipal": "ಪುರಸಭೆ",
+    "pay_bill": "ಬಿಲ್ ಪಾವತಿಸಿ",
+    "new_connection": "ಹೊಸ ಸಂಪರ್ಕ",
+    "complaint": "ದೂರು",
+    "track_request": "ವಿನಂತಿ ಟ್ರ್ಯಾಕ್ ಮಾಡಿ",
+    "complaints": "ದೂರುಗಳು"
+  },
+  "status": {
+    "submitted": "ಸಲ್ಲಿಸಲಾಗಿದೆ",
+    "processing": "ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿ",
+    "approved": "ಅನುಮೋದಿಸಲಾಗಿದೆ",
+    "completed": "ಪೂರ್ಣಗೊಂಡಿದೆ",
+    "rejected": "ತಿರಸ್ಕರಿಸಲಾಗಿದೆ",
+    "pending": "ಬಾಕಿ"
+  },
+  "common": {
+    "loading": "ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
+    "error": "ದೋಷ",
+    "success": "ಯಶಸ್ಸು",
+    "close": "ಮುಚ್ಚು",
+    "save": "ಉಳಿಸು",
+    "edit": "ಸಂಪಾದಿಸು",
+    "delete": "ಅಳಿಸು",
+    "amount": "ಮೊತ್ತ",
+    "date": "ದಿನಾಂಕ",
+    "reference": "ಉಲ್ಲೇಖ",
+    "rupee": "₹"
+  }
 }

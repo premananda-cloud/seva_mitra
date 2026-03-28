@@ -1,7 +1,6 @@
 {
   "app_name": "Seva Mitra",
   "tagline": "ꯆꯥꯡꯊꯣꯡ ꯅꯥꯒꯔꯤꯛ ꯌꯨꯇꯤꯂꯤꯇꯤ ꯀꯤꯑꯣꯁꯛ",
-
   "nav": {
     "home": "ꯊꯧꯔꯛ",
     "dashboard": "ꯗꯦꯁꯕꯣꯔꯗ",
@@ -11,7 +10,6 @@
     "cancel": "ꯁꯤꯖꯤꯟꯅꯕ",
     "confirm": "ꯁꯥꯒꯠꯂꯕ"
   },
-
   "language": {
     "select_title": "Seva Mitra-ꯇꯥ ꯄꯥꯎꯈꯩꯕꯤꯌꯨ",
     "select_subtitle": "ꯁꯤꯖꯤꯟꯅꯃꯤꯟ ꯑꯩꯈꯣꯌꯒꯤ ꯂꯣꯟ ꯁꯦꯜꯕꯤꯌꯨ",
@@ -19,7 +17,6 @@
     "continue": "ꯁꯤꯖꯤꯟꯅꯕ",
     "change": "ꯂꯣꯟ ꯁꯥꯒꯠꯂꯕ"
   },
-
   "auth": {
     "login_title": "ꯁꯥꯏꯟ ꯏꯟ",
     "login_subtitle": "ꯑꯩꯈꯣꯌꯒꯤ ꯔꯦꯖꯤꯁ꯭ꯇꯔ ꯑꯃꯨꯛꯄ ꯐꯣꯟ ꯅꯝꯕꯔ ꯑꯃꯁꯨꯡ PIN ꯄꯨꯠꯁꯤꯌꯨ",
@@ -60,7 +57,6 @@
       "logged_in": "ꯃꯔꯨꯛ ꯄꯥꯎꯈꯩꯕꯤꯌꯨ!"
     }
   },
-
   "dashboard": {
     "greeting_morning": "ꯁꯤꯖꯤꯟꯅꯕ ꯆꯠꯊꯣꯛꯄ",
     "greeting_afternoon": "ꯅꯨꯡꯉꯥꯏꯕ ꯏꯆꯤꯜ",
@@ -72,7 +68,6 @@
     "quick_pay": "ꯆꯠꯊꯣꯛꯄ ꯄꯦꯃꯦꯟꯠ",
     "view_all": "ꯊꯕꯛ ꯑꯤꯡꯅꯕ"
   },
-
   "services": {
     "electricity": "ꯏꯂꯦꯛꯇ꯭ꯔꯤꯁꯤꯇꯤ",
     "gas": "ꯒꯦꯁ",
@@ -81,9 +76,9 @@
     "pay_bill": "ꯕꯤꯜ ꯄꯦꯃꯦꯟꯠ",
     "new_connection": "ꯅꯨꯡꯉꯥꯏꯕ ꯀꯅꯦꯛꯁꯟ",
     "complaint": "ꯀꯝꯄ꯭ꯂꯦꯟꯇ",
-    "track_request": "ꯔꯤꯀ꯭ꯋꯦꯁ꯭ꯇ ꯇ꯭ꯔꯦꯛ ꯇꯧꯕ"
+    "track_request": "ꯔꯤꯀ꯭ꯋꯦꯁ꯭ꯇ ꯇ꯭ꯔꯦꯛ ꯇꯧꯕ",
+    "complaints": "ꯁ꯭ꯤꯀꯥꯌꯦꯠ"
   },
-
   "status": {
     "submitted": "ꯄꯨꯠꯂꯦ",
     "processing": "ꯁꯤꯖꯤꯟꯅꯔꯤ",
@@ -92,7 +87,6 @@
     "rejected": "ꯁꯤꯖꯤꯟꯅꯕ ꯌꯥꯗꯦ",
     "pending": "ꯄꯦꯟꯗꯤꯡ"
   },
-
   "common": {
     "loading": "ꯂꯣꯗ ꯇꯧꯔꯤ...",
     "error": "ꯑꯦꯔꯔꯔ",

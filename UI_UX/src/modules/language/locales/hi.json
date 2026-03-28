@@ -1,7 +1,6 @@
 {
   "app_name": "Seva Mitra",
   "tagline": "स्मार्ट नागरिक उपयोगिता कियोस्क",
-
   "nav": {
     "home": "होम",
     "dashboard": "डैशबोर्ड",
@@ -11,7 +10,6 @@
     "cancel": "रद्द करें",
     "confirm": "पुष्टि करें"
   },
-
   "language": {
     "select_title": "Seva Mitra में आपका स्वागत है",
     "select_subtitle": "जारी रखने के लिए अपनी पसंदीदा भाषा चुनें",
@@ -19,7 +17,6 @@
     "continue": "जारी रखें",
     "change": "भाषा बदलें"
   },
-
   "auth": {
     "login_title": "साइन इन करें",
     "login_subtitle": "अपना पंजीकृत फोन नंबर और पिन दर्ज करें",
@@ -60,7 +57,6 @@
       "logged_in": "वापस स्वागत है!"
     }
   },
-
   "dashboard": {
     "greeting_morning": "सुप्रभात",
     "greeting_afternoon": "नमस्ते",
@@ -72,7 +68,6 @@
     "quick_pay": "त्वरित भुगतान",
     "view_all": "सभी देखें"
   },
-
   "services": {
     "electricity": "बिजली",
     "gas": "गैस",
@@ -81,9 +76,9 @@
     "pay_bill": "बिल भुगतान",
     "new_connection": "नया कनेक्शन",
     "complaint": "शिकायत",
-    "track_request": "अनुरोध ट्रैक करें"
+    "track_request": "अनुरोध ट्रैक करें",
+    "complaints": "शिकायतें"
   },
-
   "status": {
     "submitted": "जमा किया गया",
     "processing": "प्रक्रियाधीन",
@@ -92,7 +87,6 @@
     "rejected": "अस्वीकृत",
     "pending": "लंबित"
   },
-
   "common": {
     "loading": "लोड हो रहा है...",
     "error": "त्रुटि",
